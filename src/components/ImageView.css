@@ -1,0 +1,25 @@
+.imageview {
+    min-width: 60%;
+    height: calc(91vh - 40px);
+    float: left;
+    border: 1px solid hsl(0, 0%, 0%);
+    border-radius: 10px;
+    margin: 10px 2% 10px 2% ;
+    padding-bottom: 40px;
+}
+footer{
+    width: 60%;
+    position: absolute;
+    bottom: 3%;
+    height: 40px;
+    text-align: center;
+
+}
+.btns{
+    width: 100%;
+    margin: 0 auto;
+}
+.img-content{
+    border:1px solid #000000;
+    margin:5px;
+}
