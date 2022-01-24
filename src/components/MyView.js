@@ -26,11 +26,13 @@ class MyView extends React.Component {
             console.log(imgInfo)
         })
   }
+  username = this.props.store.getState().username
   render(){
     return (
       <div className="App">
         <header className='title'>
-          VisImages
+          <span>VisImages</span>
+          <span className='usrname'>{this.username}</span>
         </header>
           <ImageView store={this.props.store}/>
           <ListView store={this.props.store}/>

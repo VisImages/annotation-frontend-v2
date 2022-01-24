@@ -14,6 +14,10 @@ class MyRoute extends React.Component{
         this.store = createStore({
             username: '',
             token: '',
+            imgInfo: [],
+            currentImgIndex: 0,
+            currentImgUrl: '',
+            currentImgAnnos: {}
         })
     }
     render(){

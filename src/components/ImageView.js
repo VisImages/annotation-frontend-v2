@@ -6,63 +6,74 @@ class ImageView extends React.Component {
     constructor(props){
         super(props)
         console.log(props)
-        // const {store} = props;
-        // const {imgInfo} = store.getState()
-        // if(imgInfo.length){
-        //     let img = imgInfo[0]
-        //     let filename = img['fig_name']
-        //     let pid = filename.split('_')[0]
-        //     fetch("http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename,{
-        //         method:'get',
-        //     })
-        //     .then(res => {
-        //         console.log(res)
-        //         return res.json()
-        //     })
-        //     .then(data => {
-        //         console.log(data)
-        //     })
-        // }
-        
+        this.state = {
+            imgurl: ''
+        }
+    }
+    prevImg=()=>{
+        const {currentImgIndex, imgInfo} = this.props.store.getState()
+        if(currentImgIndex!==0){
+            let img = imgInfo[currentImgIndex-1]
+            let filename = img['fig_name']
+            let pid = filename.split('_')[0]
+            const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
+            this.props.store.setState({
+                currentImgIndex: currentImgIndex-1,
+                currentImgUrl: url
+            })
+        }
+    }
+    nextImg=()=>{
+        const {currentImgIndex, imgInfo} = this.props.store.getState()
+        if(currentImgIndex!==imgInfo.length-1){
+            let img = imgInfo[currentImgIndex+1]
+            let filename = img['fig_name']
+            let pid = filename.split('_')[0]
+            const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
+            this.props.store.setState({
+                currentImgIndex: currentImgIndex+1,
+                currentImgUrl: url
+            })
+        }
     }
     componentDidMount() {
         this.props.store.subscribe(() => {
-            const {imgInfo} = this.props.store.getState()
+            const {imgInfo, currentImgIndex} = this.props.store.getState()
             if(imgInfo.length){
-                let img = imgInfo[0]
+                let img = imgInfo[currentImgIndex]
                 let filename = img['fig_name']
                 let pid = filename.split('_')[0]
-                fetch("http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename,{
-                    method:'get',
-                })
-                .then(res => {
-                    console.log(res)
-                    return res.json()
-                })
-                .then(data => {
-                    console.log(data)
+                const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
+
+                this.setState({
+                    imgurl: url
                 })
             }
         })
+        this.props.store.setState({
+            currentImgIndex: 0,
+            currentImgUrl: this.state.imgurl
+        })
     }
+    componentDidUpdate() {
+        }
     render() {
         return  (
             <div className="imageview">
                 ImageView
                 <div className="img-content">
-                    this is an image..
-                    <img  src="data:;base64,{{ img_stream }}"></img>
+                    <img  className="img" src={this.state.imgurl}  alt=""></img>
                 </div>
                 <footer>
                     <div className="btns">
-                    <Button type='primary'>
-                        prev
+                    <Button className="btn" type='primary' onClick={this.prevImg}>
+                        Prev
                     </Button>
-                    <Button type='primary'>
-                       submit
+                    <Button className="btn" type='primary'>
+                       Submit
                     </Button>
-                    <Button type='primary'>
-                       next
+                    <Button className="btn" type='primary' onClick={this.nextImg}>
+                       Next
                     </Button>
                     </div>
                    
