@@ -12,7 +12,7 @@ class MyView extends React.Component {
     fetch("http://127.0.0.1:5000/tasks",{
             method:'get',
             headers:{
-              'Token': token
+              Token: token
             }
         })
         .then(res => {

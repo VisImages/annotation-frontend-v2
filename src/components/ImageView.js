@@ -1,14 +1,49 @@
 import React  from "react";
 import {Button} from 'antd';
 import './ImageView.css';
+import { Image, Layer, Stage } from "react-konva";
+import Rects from "./Rects";
+import useImage from 'use-image';
 
+let scale;
+
+const URLImage = ({ image, maxW, maxH }) => {
+    const [img] = useImage(image);
+    let width = img?img.width:600
+    let height = img?img.height:600
+    
+    let nextscale = img?(width/maxW > height/maxH?width/maxW:height/maxH):4
+    if(scale!==nextscale){
+        scale = nextscale
+    }
+    console.log(scale)
+
+    return (
+        <Layer>
+        <Image
+            image={img}
+            // x={image.x}
+            // y={image.y}
+            width={img ? img.width/scale:600}
+            height={img? img.height/scale:600}
+            // I will use offset to set origin to the center of the image
+            // offsetX={img ? img.width / 2 : 0}
+            // offsetY={img ? img.height / 2 : 0}
+        />
+        </Layer>
+      
+    );
+  };
 class ImageView extends React.Component {
     constructor(props){
         super(props)
         console.log(props)
+        this.myImg = React.createRef()
+        this.myImgContainer = React.createRef()
         this.state = {
-            imgurl: ''
+            imgurl: '',
         }
+        scale = 4
     }
     prevImg=()=>{
         const {currentImgIndex, imgInfo} = this.props.store.getState()
@@ -19,7 +54,10 @@ class ImageView extends React.Component {
             const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
             this.props.store.setState({
                 currentImgIndex: currentImgIndex-1,
-                currentImgUrl: url
+                currentImgUrl: url,
+                // img: useImage(url)
+                currentImgInfo: [],
+                isEdit: false
             })
         }
     }
@@ -32,10 +70,46 @@ class ImageView extends React.Component {
             const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
             this.props.store.setState({
                 currentImgIndex: currentImgIndex+1,
-                currentImgUrl: url
+                currentImgUrl: url,
+                // img: useImage(url)
+                currentImgInfo: [],
+                isEdit: false
             })
         }
     }
+    submitAnnos=()=>{
+        const {imgInfo, currentImgIndex, currentImgInfo} = this.props.store.getState()
+        console.log(imgInfo[currentImgIndex])
+        console.log(currentImgInfo)
+        let data = imgInfo[currentImgIndex]
+        let annos = {}
+        currentImgInfo.forEach((type)=>{
+            let boxes = []
+            type.children.forEach((item)=>{
+                boxes.push(item.bbox)
+            })
+            annos[type.key] = boxes
+        })
+        data.annotations = annos
+        console.log(data)
+        const {token} = this.props.store.getState()
+        console.log(token)
+        fetch("http://127.0.0.1:5000/task",{
+            method:'post',
+            headers:{
+              Token: token,
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => {
+            console.log(res)
+            return res.json()
+        })
+        .then(data => {
+            console.log(data)
+        })
+    }
+
     componentDidMount() {
         this.props.store.subscribe(() => {
             const {imgInfo, currentImgIndex} = this.props.store.getState()
@@ -46,30 +120,50 @@ class ImageView extends React.Component {
                 const url = "http://127.0.0.1:5000/img_src/PacificVis/"+pid+'/'+filename
 
                 this.setState({
-                    imgurl: url
+                    imgurl: url,
+                    // img: useImage(url)
                 })
             }
+            
         })
         this.props.store.setState({
             currentImgIndex: 0,
-            currentImgUrl: this.state.imgurl
+            currentImgUrl: this.state.imgurl,
+            // currentImgInfo: imgInfo[currentImgIndex].annotations
         })
-    }
+        console.log(this.myImgContainer) 
+     }
     componentDidUpdate() {
         }
     render() {
         return  (
             <div className="imageview">
                 ImageView
-                <div className="img-content">
-                    <img  className="img" src={this.state.imgurl}  alt=""></img>
+                <div ref={this.myImgContainer} className="img-content">
+                    {/* <img  className="img" src={this.state.imgurl}  alt=""></img> */}
+                    <Stage
+                        width={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth} 
+                        height={this.myImgContainer.current?this.myImgContainer.current.clientHeight:window.innerHeight}>
+                        {/* <BaseImage store={this.props.store}/> */}
+                        <URLImage
+                            image={this.state.imgurl} 
+                            store={this.props.store}
+                            maxW={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth}
+                            maxH={this.myImgContainer.current?this.myImgContainer.current.clientHeight:window.innerHeight}
+                        />
+                        
+                        <Rects store={this.props.store} scale={scale}></Rects>
+                   
+                    </Stage>
+
+
                 </div>
                 <footer>
                     <div className="btns">
                     <Button className="btn" type='primary' onClick={this.prevImg}>
                         Prev
                     </Button>
-                    <Button className="btn" type='primary'>
+                    <Button className="btn" type='primary' onClick={this.submitAnnos}>
                        Submit
                     </Button>
                     <Button className="btn" type='primary' onClick={this.nextImg}>

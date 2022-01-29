@@ -33,6 +33,9 @@
   font-size: 10px;
 }
 
+Rect{
+  z-index: 100;
+}
 
 
 
