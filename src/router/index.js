@@ -20,6 +20,7 @@ class MyRoute extends React.Component{
             currentImgInfo: [],
             isEdit: false,
             currentImgAnnos: {},
+            editKey: null
         })
     }
     render(){

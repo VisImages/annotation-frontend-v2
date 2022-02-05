@@ -56,7 +56,7 @@ class Rects extends React.Component {
     render(){
         const {scale} = this.state
         return (
-            <Layer>
+            <Group>
                 {this.state.rects.map(rect=>{
                     return (
                         <Group key={rect.key} draggable={true}>
@@ -67,18 +67,18 @@ class Rects extends React.Component {
                                 height={(rect.bbox[3]-rect.bbox[1])/scale} 
                                 stroke= {'red'}
                                 // draggable={true}
-                                key={rect.key+'-rect'}/>
+                                key={rect.key+'_rect'}/>
                             <Text x={rect.bbox[0]/scale}
                                 y={rect.bbox[1]/scale}
                                 text={rect.key} fontSize={15}
-                                key={rect.key+'-text'} />
+                                key={rect.key+'_text'} />
                         </Group>
                         
                     )
                 })
 
                 }
-            </Layer>
+            </Group>
         ) 
     }
 

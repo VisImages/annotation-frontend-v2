@@ -1,8 +1,7 @@
 import React  from "react";
 import './ListView.css';
 
-import {Tree} from 'antd';
-import { TreeNode } from "antd/lib/tree-select";
+import {Button, Tree, Modal, Input} from 'antd';
 import {
     EditOutlined,
     PlusOutlined,
@@ -16,11 +15,9 @@ class ListView extends React.Component {
     constructor(props){
         super(props)
         this.state = {
-            imgList: []
-        }
-        const {imgInfo, currentImgIndex} = this.props.store.getState()
-        if(imgInfo.length){
-            this.createTreeData(imgInfo[currentImgIndex].annotations)
+            imgList: [],
+            isModalVisible: false,
+            newType: ''
         }
     }
 
@@ -43,7 +40,7 @@ class ListView extends React.Component {
                     <div>
                         <span>{'box-'+index}</span>
                         <span>
-                            <EditOutlined style={{marginLeft: 10}} />
+                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartType+'-'+index)}/>
                             <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartType+'-'+index)}/>
                         </span>
                     </div>
@@ -76,45 +73,68 @@ class ListView extends React.Component {
         })
     }
 
-    onSelect = (keys, info) => {
-        console.log('Trigger Select', keys, info);
-    };
-
-    renderTreeNodes=(data)=>{
-        let nodeArr = data.map((item)=>{
-            if(item.key.indexOf('-')>0){
-                item.title = (
-                    <div>
-                        <span>{item.key}</span>
-                        <span>
-                            <EditOutlined style={{marginLeft: 10}} />
-                            <MinusOutlined style={{marginLeft: 10}} />
-                        </span>
-                    </div>
-                )
-            }else{
-                item.title = (
-                    <div>
-                        <span>{item.key}</span>
-                        <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(item.key)} /></span>
-                        
-                    </div>
-                )
-            }
-            
-            
-            if(item.children){
-                return (
-                    <TreeNode title={item.title}
-                        key={item.key}
-                        dataRef={item}>
-                            {this.renderTreeNodes(item.children)}
-                    </TreeNode>
-                )
-            }
-            return <TreeNode title={item.title} key={item.key}></TreeNode>
+    showModal = () => {
+        this.setState({
+            isModalVisible: true
         })
-        return nodeArr
+    }
+
+    onInputChange=(e)=>{
+        this.setState({
+            newType: e.target.value
+        })
+        console.log(this.state.newType)
+    }
+
+    handleOk = () => {
+        let data = this.state.imgList
+        let chartType = this.state.newType
+        let boxes = []
+        let title1 = (
+            <div>
+                <span>{'box-0'}</span>
+                <span>
+                    <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartType+'-0')}/>
+                    <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartType+'-0')}/>
+                </span>
+            </div>
+        )
+        boxes.push({
+            // title:'box-'+index,
+            title:title1,
+            key: chartType+'-0',
+            bbox: [0,10,0,10]
+        })
+     
+        let title2 = (
+            <div>
+                <span>{chartType}</span>
+                <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
+                
+            </div>
+        )
+        data.push({
+            title: title2,
+            key: chartType,
+            children: boxes
+        })
+        this.setState({
+            newType: ''
+        })
+        console.log(this.state.newType)
+        this.setState({
+            isModalVisible: false
+        })
+    }
+
+    handleCancel = () => {
+        this.setState({
+            newType: ''
+        })
+        console.log(this.state.newType)
+        this.setState({
+            isModalVisible: false
+        })
     }
 
     onAdd = (key) => {
@@ -129,7 +149,7 @@ class ListView extends React.Component {
                     <div>
                         <span>{'box-'+item.children.length}</span>
                         <span>
-                            <EditOutlined style={{marginLeft: 10}} />
+                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(myKey)}/>
                             <MinusOutlined style={{marginLeft: 10}}  onClick={()=>this.onDelete(myKey)}/>
                         </span>
                     </div>
@@ -146,9 +166,18 @@ class ListView extends React.Component {
             imgList: data
         })
         this.props.store.setState({
-            currentImgInfo: data
+            currentImgInfo: data,
+            isEdit: true
         })
         console.log(this.state.imgList)
+    }
+
+    onEdit = (key) =>{
+        this.props.store.setState({
+            currentImgInfo: this.state.imgList,
+            editKey: key,
+            isEdit: true,
+        })
     }
 
     onDelete=(key)=>{
@@ -168,7 +197,8 @@ class ListView extends React.Component {
             imgList: data
         })
         this.props.store.setState({
-            currentImgInfo: data
+            currentImgInfo: data,
+            isEdit: true
         })
         console.log(this.state.imgList)
     }
@@ -189,6 +219,15 @@ class ListView extends React.Component {
         return  (
             <div className="listview">
                 ListView
+                <div>
+                <Button type='primary' size='small' onClick={this.showModal}>Add New Type</Button>
+                <Modal title="add new type"
+                       visible={this.state.isModalVisible}
+                       onOk={this.handleOk}
+                       onCancel={this.handleCancel} >
+                    <Input onChange={(e)=>this.onInputChange(e)}></Input>
+                </Modal>
+                </div>
                 {/* <Tree
                     // checkable
                     defaultExpandedAll={true}
