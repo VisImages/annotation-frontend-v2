@@ -144,10 +144,13 @@ class ListView extends React.Component {
         data.forEach((item)=>{
             console.log(item)
             if(item.key===key){
-                let myKey = item.key+'-'+item.children.length
+                const lastKey = item.children[item.children.length-1].key
+                const lastIndex = parseInt(lastKey.split('-')[1])
+                const myIndex = lastIndex+1
+                let myKey = item.key+'-'+myIndex
                 let title = (
                     <div>
-                        <span>{'box-'+item.children.length}</span>
+                        <span>{'box-'+myIndex}</span>
                         <span>
                             <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(myKey)}/>
                             <MinusOutlined style={{marginLeft: 10}}  onClick={()=>this.onDelete(myKey)}/>
@@ -157,7 +160,7 @@ class ListView extends React.Component {
                 item.children.push({
                     // title:'box-'+item.children.length,
                     title:title,
-                    key:item.key+'-'+item.children.length,
+                    key:myKey,
                     bbox:[]
                 })
             }
