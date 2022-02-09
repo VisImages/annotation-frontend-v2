@@ -56,7 +56,7 @@ function Login(props){
                         })
                         .then(data => {
                             console.log(data)
-                            store.setState({ imgInfo: data.data});
+                            store.setState({ imgInfo: data.data, currentPaper: data.paper[0]});
                             const {imgInfo} = store.getState()
                             console.log(imgInfo)
                         })

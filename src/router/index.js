@@ -12,6 +12,7 @@ class MyRoute extends React.Component{
     constructor(props){
         super(props)
         this.store = createStore({
+            currentPaper: 'VIS',
             username: '',
             token: '',
             imgInfo: [],
