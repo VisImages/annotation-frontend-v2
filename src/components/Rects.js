@@ -1,5 +1,5 @@
 import React from "react";
-import { Group, Layer, Rect, Text } from "react-konva";
+import { Group, Rect, Text } from "react-konva";
 
 class Rects extends React.Component {
     constructor(props){
@@ -16,7 +16,7 @@ class Rects extends React.Component {
             // console.log(annos)
             let rects = []
             if(currentImgInfo.length){
-                console.log(currentImgInfo)
+                // console.log(currentImgInfo)
                 let annos = currentImgInfo
                 annos.forEach(type=>{
                     type.children.forEach((box)=>{
@@ -43,7 +43,7 @@ class Rects extends React.Component {
             this.setState ({
                 rects: rects
             })
-            console.log(this.props.scale)
+            console.log(rects)
         })
     }
 
@@ -52,7 +52,7 @@ class Rects extends React.Component {
             scale: nextProps.scale
         });
     }
-    
+
     render(){
         const {scale} = this.state
         return (
@@ -60,26 +60,30 @@ class Rects extends React.Component {
                 {this.state.rects.map(rect=>{
                     return (
                         <Group key={rect.key} draggable={true}>
-                            <Rect 
+                            <Rect
                                 x={rect.bbox[0]/scale}
                                 y={rect.bbox[1]/scale}
-                                width={(rect.bbox[2]-rect.bbox[0])/scale} 
-                                height={(rect.bbox[3]-rect.bbox[1])/scale} 
+                                width={(rect.bbox[2]-rect.bbox[0])/scale}
+                                height={(rect.bbox[3]-rect.bbox[1])/scale}
                                 stroke= {'red'}
                                 // draggable={true}
                                 key={rect.key+'_rect'}/>
                             <Text x={rect.bbox[0]/scale}
                                 y={rect.bbox[1]/scale}
+                                fill={"#555555"}
                                 text={rect.key} fontSize={15}
                                 key={rect.key+'_text'} />
+                            <Text x={rect.bbox[2]/scale}
+                                y={rect.bbox[3]/scale-15}
+                                text={rect.key} fontSize={15}
+                                fill={"#555555"}
+                                key={rect.key+'_text'} />
                         </Group>
-                        
                     )
                 })
-
                 }
             </Group>
-        ) 
+        )
     }
 
 

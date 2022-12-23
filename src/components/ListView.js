@@ -1,22 +1,21 @@
 import React  from "react";
 import './ListView.css';
 
-import {Button, Tree, Modal, Input} from 'antd';
+import {Button, Tree, Modal, Select} from 'antd';
 import {
     EditOutlined,
     PlusOutlined,
     MinusOutlined
 } from '@ant-design/icons'
-// import { Collapse } from 'antd';
 
-// const { Panel } = Collapse;
+const VISCATEGORIES = [{"value": "flow_diagram", "label": "flow_diagram"}, {"value": "scatterplot", "label": "scatterplot"}, {"value": "bar_chart", "label": "bar_chart"}, {"value": "graph", "label": "graph"}, {"value": "treemap", "label": "treemap"}, {"value": "table", "label": "table"}, {"value": "line_chart", "label": "line_chart"}, {"value": "tree", "label": "tree"}, {"value": "small_multiple", "label": "small_multiple"}, {"value": "heatmap", "label": "heatmap"}, {"value": "matrix", "label": "matrix"}, {"value": "map", "label": "map"}, {"value": "pie_chart", "label": "pie_chart"}, {"value": "sankey_diagram", "label": "sankey_diagram"}, {"value": "area_chart", "label": "area_chart"}, {"value": "proportional_area_chart", "label": "proportional_area_chart"}, {"value": "glyph_based", "label": "glyph_based"}, {"value": "stripe_graph", "label": "stripe_graph"}, {"value": "parallel_coordinate", "label": "parallel_coordinate"}, {"value": "sunburst_icicle", "label": "sunburst_icicle"}, {"value": "unit_visualization", "label": "unit_visualization"}, {"value": "polar_plot", "label": "polar_plot"}, {"value": "error_bar", "label": "error_bar"}, {"value": "box_plot", "label": "box_plot"}, {"value": "sector_chart", "label": "sector_chart"}, {"value": "word_cloud", "label": "word_cloud"}, {"value": "donut_chart", "label": "donut_chart"}, {"value": "hierarchical_edge_bundling", "label": "hierarchical_edge_bundling"}, {"value": "chord_diagram", "label": "chord_diagram"}, {"value": "storyline", "label": "storyline"}]
 
 class ListView extends React.Component {
     constructor(props){
         super(props)
         this.state = {
             imgList: [],
-            isModalVisible: false,
+            isAddTypeModalVisible: false,
             newType: ''
         }
     }
@@ -52,13 +51,10 @@ class ListView extends React.Component {
                     bbox: box
                 })
             })
-
-             
             let title2 = (
                 <div>
                     <span>{chartType}</span>
                     <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
-                    
                 </div>
             )
             treeData.push({
@@ -73,20 +69,19 @@ class ListView extends React.Component {
         })
     }
 
-    showModal = () => {
+    showAddTypeModal = () => {
         this.setState({
-            isModalVisible: true
+            isAddTypeModalVisible: true
         })
     }
 
-    onInputChange=(e)=>{
+    onVisTypeChange=(e)=>{
         this.setState({
-            newType: e.target.value
+            newType: e
         })
-        console.log(this.state.newType)
     }
 
-    handleOk = () => {
+    handleOk_AddType = () => {
         let data = this.state.imgList
         let chartType = this.state.newType
         let boxes = []
@@ -105,12 +100,11 @@ class ListView extends React.Component {
             key: chartType+'-0',
             bbox: [0,10,0,10]
         })
-     
+
         let title2 = (
             <div>
                 <span>{chartType}</span>
                 <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
-                
             </div>
         )
         data.push({
@@ -123,17 +117,17 @@ class ListView extends React.Component {
         })
         console.log(this.state.newType)
         this.setState({
-            isModalVisible: false
+            isAddTypeModalVisible: false
         })
     }
 
-    handleCancel = () => {
+    handleCancel_AddType = () => {
         this.setState({
             newType: ''
         })
         console.log(this.state.newType)
         this.setState({
-            isModalVisible: false
+            isAddTypeModalVisible: false
         })
     }
 
@@ -174,7 +168,7 @@ class ListView extends React.Component {
         })
         console.log(this.state.imgList)
     }
-
+    // set currentImgInfo: which is visualization annotations in VerifyImages Tasks, need to improve the name
     onEdit = (key) =>{
         this.props.store.setState({
             currentImgInfo: this.state.imgList,
@@ -195,7 +189,7 @@ class ListView extends React.Component {
                     }
                 }
             })
-        }) 
+        })
         this.setState({
             imgList: data
         })
@@ -223,12 +217,24 @@ class ListView extends React.Component {
             <div className="listview">
                 ListView
                 <div>
-                <Button type='primary' size='small' onClick={this.showModal}>Add New Type</Button>
+                <Button type='primary' size='small' onClick={this.showAddTypeModal}>Add New Type</Button>
                 <Modal title="add new type"
-                       visible={this.state.isModalVisible}
-                       onOk={this.handleOk}
-                       onCancel={this.handleCancel} >
-                    <Input onChange={(e)=>this.onInputChange(e)}></Input>
+                       visible={this.state.isAddTypeModalVisible}
+                       onOk={this.handleOk_AddType}
+                       onCancel={this.handleCancel_AddType} >
+                    {/* <Input onChange={(e)=>this.onInputChange(e)}></Input> */}
+                    <Select
+                        showSearch
+                        style={{ width: 250 }}
+                        placeholder="Select a visualization type"
+                        optionFilterProp="children"
+                        onChange={this.onVisTypeChange}
+                        // onSearch={this.onVisTypeSearch}
+                        filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                        }
+                        options= {VISCATEGORIES}
+                    />
                 </Modal>
                 </div>
                 {/* <Tree

@@ -1,22 +1,24 @@
 import React  from "react";
-import {Button, Modal} from 'antd';
+import {Button, Modal, Result, message} from 'antd';
 import './ImageView.css';
-import { Group, Image, Layer, Stage } from "react-konva";
+import { Image, Layer, Stage } from "react-konva";
 import Rects from "./Rects";
 import useImage from 'use-image';
+import { SmileOutlined } from "@ant-design/icons";
 
 let scale;
-
+const TASKALLDONE = 'All Tasks are done.'
+//TODO check and improve rect draw
 const AnnosImage = ({ image, store, maxW, maxH }) => {
     const [img] = useImage(image);
     let width = img?img.width:600
     let height = img?img.height:600
-    
+
     let nextscale = img?(width/maxW > height/maxH?width/maxW:height/maxH):4
     if(scale!==nextscale){
         scale = nextscale
     }
-    console.log(scale)
+    // console.log(scale)
 
     return (
         <Layer>
@@ -32,7 +34,6 @@ const AnnosImage = ({ image, store, maxW, maxH }) => {
             />
             <Rects store={store} scale={scale}></Rects>
         </Layer>
-      
     );
   };
 class ImageView extends React.Component {
@@ -45,17 +46,18 @@ class ImageView extends React.Component {
         this.state = {
             imgurl: '',
             isPainting: false,
-            isModalVisible: false,
+            isContinueModalVisible: false,
+            isTaskEmpty: true
         }
         scale = 4
     }
     prevImg=()=>{
-        const {currentImgIndex, imgInfo,currentPaper} = this.props.store.getState()
+        const {currentImgIndex, imgInfo} = this.props.store.getState()
         if(currentImgIndex!==0){
             let img = imgInfo[currentImgIndex-1]
             let filename = img['fig_name']
             let pid = filename.split('_')[0]
-            const url = "http://127.0.0.1:5000/img_src/"+currentPaper+"/"+pid+'/'+filename
+            const url = "http://127.0.0.1:5000/img_src/"+ pid + '/' + filename
             this.props.store.setState({
                 currentImgIndex: currentImgIndex-1,
                 currentImgUrl: url,
@@ -63,15 +65,17 @@ class ImageView extends React.Component {
                 currentImgInfo: [],
                 isEdit: false
             })
+        } else {
+            message.warn('This is the first image.');
         }
     }
     nextImg=()=>{
-        const {currentImgIndex, imgInfo, currentPaper} = this.props.store.getState()
-        if(currentImgIndex!==imgInfo.length-1){
+        const {currentImgIndex, imgInfo} = this.props.store.getState()
+        if(imgInfo.length !== 0 && currentImgIndex!==imgInfo.length-1){
             let img = imgInfo[currentImgIndex+1]
             let filename = img['fig_name']
             let pid = filename.split('_')[0]
-            const url = "http://127.0.0.1:5000/img_src/"+currentPaper+"/"+pid+'/'+filename
+            const url = "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
             this.props.store.setState({
                 currentImgIndex: currentImgIndex+1,
                 currentImgUrl: url,
@@ -79,12 +83,20 @@ class ImageView extends React.Component {
                 currentImgInfo: [],
                 isEdit: false
             })
+        } else if (imgInfo.length !== 0) {
+            message.warn('This is the last image.');
+        } else {
+            console.log("isTaskEmpty: true");
+            this.setState({
+                isTaskEmpty: true
+            });
         }
     }
+    // TODO 刷新任务会消失，需要保存
     submitAnnos=()=>{
         let {imgInfo, currentImgIndex, currentImgInfo} = this.props.store.getState()
-        console.log(imgInfo[currentImgIndex])
-        console.log(currentImgInfo)
+        // console.log(imgInfo[currentImgIndex])
+        // console.log(currentImgInfo)
         let data = imgInfo[currentImgIndex]
         let annos = {}
         currentImgInfo.forEach((type)=>{
@@ -98,7 +110,7 @@ class ImageView extends React.Component {
         console.log(data)
         const {token} = this.props.store.getState()
         console.log(token)
-        fetch("http://127.0.0.1:5000/task",{
+        fetch("http://127.0.0.1:5000/submit_task",{
             method:'post',
             headers:{
               Token: token,
@@ -112,26 +124,33 @@ class ImageView extends React.Component {
         .then(data => {
             console.log(data)
         })
-        imgInfo.splice(currentImgInfo,1)
+        imgInfo.splice(currentImgIndex,1)
+        if(currentImgIndex !== 0 && currentImgIndex >= imgInfo.length) {
+            currentImgIndex = imgInfo.length - 1
+        }
         this.props.store.setState({
             imgInfo: [...imgInfo],
-            currentImgInfo: []
+            currentImgInfo: [],
+            currentImgIndex: currentImgIndex
         })
-        
+    }
+    // get tasks only when all tasks are done.
+    getTasks=()=>{
         if(!this.props.store.getState().imgInfo.length){
-            this.showModal()
+            this.showContinueModal()
+        } else {
+            message.warn("Please complete the assigned tasks first.")
         }
-        
     }
     getRelativePointerPosition(node) {
     // the function will return pointer position relative to the passed node
         const transform = node.getAbsoluteTransform().copy();
         // to detect relative position we need to invert transform
         transform.invert();
-        
+
         // get pointer (say mouse or touch) position
         const pos = node.getStage().getPointerPosition();
-        
+
         // now we find relative point
         return transform.point(pos);
     }
@@ -145,7 +164,7 @@ class ImageView extends React.Component {
             return
         }
         const point = this.getRelativePointerPosition(e.target.getStage());
-        console.log(point)
+        console.log("Mouse Down Position: ", point)
         currentImgInfo.forEach((type,idx)=>{
             type.children.forEach((item, index)=>{
                 if(item.key===editKey){
@@ -154,7 +173,7 @@ class ImageView extends React.Component {
                     item.bbox[1]=point.y*scale
                 }
             })
-        }) 
+        })
         this.props.store.setState({
             currentImgInfo: [...currentImgInfo],
         })
@@ -165,7 +184,7 @@ class ImageView extends React.Component {
         }
         const {editKey, currentImgInfo}=this.props.store.getState()
         const point = this.getRelativePointerPosition(e.target.getStage());
-        console.log(point)
+        console.log("Mouse Move Position: ", point)
         currentImgInfo.forEach((type,idx)=>{
             type.children.forEach((item, index)=>{
                 if(item.key===editKey){
@@ -174,7 +193,7 @@ class ImageView extends React.Component {
                     item.bbox[3]=point.y*scale
                 }
             })
-        }) 
+        })
         this.props.store.setState({
             currentImgInfo: [...currentImgInfo],
         })
@@ -188,13 +207,13 @@ class ImageView extends React.Component {
         })
     }
 
-    showModal = () => {
+    showContinueModal = () => {
         this.setState({
-            isModalVisible: true
+            isContinueModalVisible: true
         })
     }
 
-    handleOk = () => {
+    handleOk_ContinueTasks = () => {
         const { store } = this.props;
         const {token} = store.getState()
         console.log(token)
@@ -212,79 +231,89 @@ class ImageView extends React.Component {
                 console.log(data)
                 store.setState({ imgInfo: data.data});
                 const {imgInfo} = store.getState()
+                if(imgInfo.length === 0) {
+                    message.info("There are no tasks to be assigned.")
+                } else {
+                    message.success("Get Tasks success, cnt is " + imgInfo.length + ".")
+                }
                 console.log(imgInfo)
             })
-        
+
         this.setState({
-            isModalVisible: false
+            isContinueModalVisible: false
         })
     }
 
-    handleCancel = () => {
+    handleCancel_ContinueTasks = () => {
         this.setState({
-            isModalVisible: false
+            isContinueModalVisible: false
         })
     }
-
 
     componentDidMount() {
+        // 监听函数，一旦store改变就执行
         this.props.store.subscribe(() => {
-            const {imgInfo, currentImgIndex,currentPaper} = this.props.store.getState()
+            const {imgInfo, currentImgIndex} = this.props.store.getState()
             if(imgInfo.length){
                 let img = imgInfo[currentImgIndex]
                 let filename = img['fig_name']
                 let pid = filename.split('_')[0]
-
-                const url = "http://127.0.0.1:5000/img_src/"+currentPaper+"/"+pid+'/'+filename
+                const url = "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
 
                 this.setState({
                     imgurl: url,
-                    // img: useImage(url)
+                    isTaskEmpty: false
+                })
+            } else {
+                this.setState({
+                    imgurl: "",
+                    isTaskEmpty: true
                 })
             }
-            
         })
         this.props.store.setState({
             currentImgIndex: 0,
             currentImgUrl: this.state.imgurl,
-            // currentImgInfo: imgInfo[currentImgIndex].annotations
+            // currentImgInfo: this.props.store.imgInfo[0].annotations
         })
-        console.log(this.myImgContainer) 
+        console.log(this.myImgContainer)
      }
-    
+
     render() {
         return  (
             <div className="imageview">
                 ImageView
                 <Modal title="继续"
-                       visible={this.state.isModalVisible}
-                       onOk={this.handleOk}
-                       onCancel={this.handleCancel} >
+                       visible={this.state.isContinueModalVisible}
+                       onOk={this.handleOk_ContinueTasks}
+                       onCancel={this.handleCancel_ContinueTasks} >
                     <p>继续领取任务？</p>
                 </Modal>
                 <div ref={this.myImgContainer} className="img-content">
                     {/* <img  className="img" src={this.state.imgurl}  alt=""></img> */}
                     <Stage
                         ref={this.stageRef}
-                        width={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth} 
+                        width={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth}
                         height={this.myImgContainer.current?this.myImgContainer.current.clientHeight:window.innerHeight}
                         onMouseDown={(e)=>{this.onMouseDown(e)}}
                         onMouseMove={(e)=>{this.onMouseMove(e)}}
                         onMouseUp={(e)=>{this.onMouseUp(e)}}
+                        visible = {!this.state.isTaskEmpty}
                         >
-
                         {/* <BaseImage store={this.props.store}/> */}
-                        <AnnosImage
-                            image={this.state.imgurl} 
-                            store={this.props.store}
-                            maxW={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth}
-                            maxH={this.myImgContainer.current?this.myImgContainer.current.clientHeight:window.innerHeight}
-                        />
-                        
-                   
+                            <AnnosImage
+                                image={this.state.imgurl}
+                                store={this.props.store}
+                                maxW={this.myImgContainer.current?this.myImgContainer.current.clientWidth:window.innerWidth}
+                                maxH={this.myImgContainer.current?this.myImgContainer.current.clientHeight:window.innerHeight}
+                            />
                     </Stage>
-
-
+                    <div style={{display:this.state.isTaskEmpty ? '' : 'none'}}>
+                    <Result
+                        icon = {<SmileOutlined/>}
+                        title = {TASKALLDONE}
+                    />
+                    </div>
                 </div>
                 <footer>
                     <div className="btns">
@@ -294,11 +323,13 @@ class ImageView extends React.Component {
                     <Button className="btn" type='primary' onClick={this.submitAnnos}>
                        Submit
                     </Button>
+                    <Button className="btn" type='primary' onClick={this.getTasks}>
+                       Get New Tasks
+                    </Button>
                     <Button className="btn" type='primary' onClick={this.nextImg}>
                        Next
                     </Button>
                     </div>
-                   
                 </footer>
             </div>
         )

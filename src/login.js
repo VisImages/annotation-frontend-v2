@@ -11,7 +11,7 @@ function Login(props){
     let usrname = ''
 
     function handleSubmit(){
-        fetch("http://127.0.0.1:5000/usr/"+usrname,{
+        fetch("http://127.0.0.1:5000/user/"+usrname,{
             method:'get'
         })
         .then(res => {
@@ -56,19 +56,13 @@ function Login(props){
                         })
                         .then(data => {
                             console.log(data)
-                            store.setState({ imgInfo: data.data, currentPaper: data.paper[0]});
+                            store.setState({ imgInfo: data.data});
                             const {imgInfo} = store.getState()
                             console.log(imgInfo)
                         })
                     }
-                    
                 })
-
-            
-        
         })
-
-       
         navigate('/usr',{replace:true})
     }
 
@@ -82,16 +76,15 @@ function Login(props){
             <div className="login">
                 <div className="login-form">
                     <div className="login-name">VisImages</div>
-                    <Input className="username" 
-                            size="large" 
-                            placeholder="user name" 
+                    <Input className="username"
+                            size="large"
+                            placeholder="user name"
                             prefix={<UserOutlined />}
-                            defaultValue={usrname} 
+                            defaultValue={usrname}
                             onChange={(e)=>onChange(e)}
                             />
                     <br/>
                     <Button className="btn" type="primary"  onClick={handleSubmit} >登录 </Button>
-                   
                 </div>
             </div>
         )

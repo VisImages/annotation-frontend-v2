@@ -26,15 +26,13 @@ class MyRoute extends React.Component{
     }
     render(){
         return(
-            <Router history={history}> 
+            <Router history={history}>
                 <Routes>
                     <Route exact path="/" element={<Login store={this.store}/>}></Route>
                     <Route path="/usr" element={<MyView store={this.store}/>} ></Route>
                 </Routes>
-
             </Router>
-            
         )
-    }  
+    }
 }
 export default MyRoute;
