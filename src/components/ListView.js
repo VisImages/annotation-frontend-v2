@@ -1,12 +1,13 @@
 import React  from "react";
 import './ListView.css';
 
-import {Button, Tree, Modal, Select, message} from 'antd';
+import {Button, Tree, Modal, Select, message, Tag} from 'antd';
 import {
     EditOutlined,
     PlusOutlined,
     MinusOutlined
 } from '@ant-design/icons'
+import { Label } from "react-konva";
 
 const VISCATEGORIES = [{"value": "flow_diagram", "label": "flow_diagram"}, {"value": "scatterplot", "label": "scatterplot"}, {"value": "bar_chart", "label": "bar_chart"}, {"value": "graph", "label": "graph"}, {"value": "treemap", "label": "treemap"}, {"value": "table", "label": "table"}, {"value": "line_chart", "label": "line_chart"}, {"value": "tree", "label": "tree"}, {"value": "small_multiple", "label": "small_multiple"}, {"value": "heatmap", "label": "heatmap"}, {"value": "matrix", "label": "matrix"}, {"value": "map", "label": "map"}, {"value": "pie_chart", "label": "pie_chart"}, {"value": "sankey_diagram", "label": "sankey_diagram"}, {"value": "area_chart", "label": "area_chart"}, {"value": "proportional_area_chart", "label": "proportional_area_chart"}, {"value": "glyph_based", "label": "glyph_based"}, {"value": "stripe_graph", "label": "stripe_graph"}, {"value": "parallel_coordinate", "label": "parallel_coordinate"}, {"value": "sunburst_icicle", "label": "sunburst_icicle"}, {"value": "unit_visualization", "label": "unit_visualization"}, {"value": "polar_plot", "label": "polar_plot"}, {"value": "error_bar", "label": "error_bar"}, {"value": "box_plot", "label": "box_plot"}, {"value": "sector_chart", "label": "sector_chart"}, {"value": "word_cloud", "label": "word_cloud"}, {"value": "donut_chart", "label": "donut_chart"}, {"value": "hierarchical_edge_bundling", "label": "hierarchical_edge_bundling"}, {"value": "chord_diagram", "label": "chord_diagram"}, {"value": "storyline", "label": "storyline"}]
 
@@ -14,27 +15,22 @@ class ListView extends React.Component {
     constructor(props){
         super(props)
         this.state = {
-            imgList: [],
+            annoTreeData: [],
             isAddTypeModalVisible: false,
-            newType: ''
+            newType: '',
+            selectedKey: '' // selectedKey for tree node
         }
     }
 
-    createTreeData(imgInfo){
-        const {currentImgInfo} = this.props.store.getState()
-        if(currentImgInfo.length){
-            this.setState({
-                imgList: currentImgInfo
-            })
-            return
-        }
+    createTreeData(annotations){
+        // when currentAnnoInfo is empty or isEdit === false（Not yet modified）
+        // produce treeData from annotations
         let treeData = []
-        Object.keys(imgInfo).forEach(item=>{
+
+        Object.keys(annotations).forEach(item=>{
             let chartType = item
             let boxes = []
-            // console.log(item, imgInfo[item])
-
-            imgInfo[chartType].forEach((box, index)=>{
+            annotations[chartType].forEach((box, index)=>{
                 let title1 = (
                     <div>
                         <span>{'box-'+index}</span>
@@ -45,8 +41,7 @@ class ListView extends React.Component {
                     </div>
                 )
                 boxes.push({
-                    // title:'box-'+index,
-                    title:title1,
+                    title: title1,
                     key: chartType+'-'+index,
                     bbox: box
                 })
@@ -65,7 +60,11 @@ class ListView extends React.Component {
         })
 
         this.setState({
-            imgList: treeData
+            annoTreeData: treeData
+        })
+
+        this.props.store.setState({
+            currentAnnoInfo: treeData
         })
     }
 
@@ -82,7 +81,7 @@ class ListView extends React.Component {
     }
 
     handleOk_AddType = () => {
-        let data = this.state.imgList
+        let data = this.state.annoTreeData
         const keyList = data.map(item => item.key)
         let chartType = this.state.newType
         if(keyList.indexOf(chartType) !== -1) {
@@ -115,14 +114,19 @@ class ListView extends React.Component {
                 <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
             </div>
         )
-        data.push({
-            title: title2,
-            key: chartType,
-            children: boxes
-        })
+
+        // add new type node into annoTreeData
         this.setState({
             newType: '',
-            isAddTypeModalVisible: false
+            isAddTypeModalVisible: false,
+            annoTreeData: [
+                ...data,
+                {
+                    title: title2,
+                    key: chartType,
+                    children: boxes
+                }
+            ]
         })
     }
 
@@ -134,9 +138,8 @@ class ListView extends React.Component {
     }
 
     onAdd = (key) => {
-        // addNode(key)
         console.log(key)
-        let data = this.state.imgList
+        let data = this.state.annoTreeData
         data.forEach((item)=>{
             console.log(item)
             if(item.key===key){
@@ -162,30 +165,32 @@ class ListView extends React.Component {
             }
         })
         this.setState({
-            imgList: data
+            annoTreeData: data
         })
         this.props.store.setState({
-            currentImgInfo: data,
+            currentAnnoInfo: data,
             isEdit: true
         })
-        console.log(this.state.imgList)
+        console.log(this.state.annoTreeData)
     }
-    // set currentImgInfo: which is visualization annotations in VerifyImages Tasks, need to improve the name
+    // set currentAnnoInfo: which is visualization annotations in VerifyImages Tasks, need to improve the name
     onEdit = (key) =>{
         this.props.store.setState({
-            currentImgInfo: this.state.imgList,
-            editKey: key,
+            currentAnnoInfo: this.state.annoTreeData,
+            editingAnnoKey: key,
             isEdit: true,
         })
     }
 
-    onDelete=(key)=>{
-        let data = this.state.imgList
+    onDelete = (key) => {
+        let data = this.state.annoTreeData
         data.forEach((type,idx)=>{
             type.children.forEach((item, index)=>{
                 console.log(key)
                 if(item.key===key){
+                    // delete tree node by the key
                     type.children.splice(index,1)
+                    // when the type is empty, delete the type
                     if(type.children.length===0){
                         data.splice(idx,1)
                     }
@@ -193,20 +198,42 @@ class ListView extends React.Component {
             })
         })
         this.setState({
-            imgList: data
+            annoTreeData: data
         })
         this.props.store.setState({
-            currentImgInfo: data,
+            currentAnnoInfo: data,
             isEdit: true
         })
-        console.log(this.state.imgList)
+        console.log(this.state.annoTreeData)
+    }
+
+    handleSelectNode = (e) => {
+        // get the selected node key
+        const currKey = e[0]
+        this.setState({
+            selectedKey: currKey
+        })
+        this.props.store.setState({
+            selectedKey: currKey
+        })
     }
 
     componentDidMount() {
         this.props.store.subscribe(() => {
-            const {imgInfo, currentImgIndex} = this.props.store.getState()
-            if(imgInfo.length){
-                this.createTreeData(imgInfo[currentImgIndex].annotations)
+            const {taskInfo, currentTaskIndex, selectedKey, currentAnnoInfo, isEdit} = this.props.store.getState()
+            this.setState({
+                selectedKey: selectedKey
+            })
+
+            if(currentAnnoInfo.length || isEdit){
+                this.setState({
+                    annoTreeData: currentAnnoInfo
+                })
+            } else {
+                //execute createTreeData after loading taskInfo
+                if(taskInfo.length){
+                    this.createTreeData(taskInfo[currentTaskIndex].annotations)
+                }
             }
         })
     }
@@ -219,19 +246,19 @@ class ListView extends React.Component {
             <div className="listview">
                 ListView
                 <div>
+                <Tag className="tag" color='blue'> TaskType: {this.props.store.getState().taskType}</Tag>
+                <br></br>
                 <Button type='primary' size='small' onClick={this.showAddTypeModal}>Add New Type</Button>
                 <Modal title="add new type"
                        visible={this.state.isAddTypeModalVisible}
                        onOk={this.handleOk_AddType}
                        onCancel={this.handleCancel_AddType} >
-                    {/* <Input onChange={(e)=>this.onInputChange(e)}></Input> */}
                     <Select
                         showSearch
                         style={{ width: 250 }}
                         placeholder="Select a visualization type"
                         optionFilterProp="children"
                         onChange={this.onVisTypeChange}
-                        // onSearch={this.onVisTypeSearch}
                         filterOption={(input, option) =>
                         (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                         }
@@ -239,19 +266,14 @@ class ListView extends React.Component {
                     />
                 </Modal>
                 </div>
-                {/* <Tree
-                    // checkable
-                    defaultExpandedAll={true}
-                    // defaultSelectedKeys={['0-0-0', '0-0-1']}
-                    // defaultCheckedKeys={['0-0-0', '0-0-1']}
-                    onSelect={this.onSelect}
-                    // onCheck={onCheck}
-                    treeData={this.state.imgList}
-                    /> */}
-                {/* <Tree>{this.renderTreeNodes(this.state.imgList)}</Tree> */}
                 {
-                    this.state.imgList.length ? (
-                        <Tree treeData={[...this.state.imgList]}>
+                    this.state.annoTreeData.length ? (
+                        <Tree
+                            treeData={[...this.state.annoTreeData]}
+                            selectedKeys={[this.state.selectedKey]}
+                            defaultExpandAll={true}
+                            onSelect={this.handleSelectNode}
+                        >
                         </Tree>
                     ) : (
                        <div> no data</div>

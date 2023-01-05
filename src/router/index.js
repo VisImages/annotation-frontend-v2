@@ -7,21 +7,21 @@ import Login from '../login.js'
 import createStore from '../store/index'
 
 let history = createBrowserHistory()
-  
+
 class MyRoute extends React.Component{
     constructor(props){
         super(props)
         this.store = createStore({
-            currentPaper: 'VIS',
             username: '',
             token: '',
-            imgInfo: [],
-            currentImgIndex: 0,
-            currentImgUrl: '',
-            currentImgInfo: [],
+            taskInfo: [],
+            taskType: '',
+            currentTaskIndex: 0,
+            currentImgURL: '',
+            currentAnnoInfo: [],
             isEdit: false,
-            currentImgAnnos: {},
-            editKey: null
+            editingAnnoKey: null, // the annotation (rect/tree node) key which is editing
+            selectedKey: '' // the selected key of tree node, associated with rect
         })
     }
     render(){
