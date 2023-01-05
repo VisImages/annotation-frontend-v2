@@ -1,7 +1,7 @@
 import React  from "react";
 import './ListView.css';
 
-import {Button, Tree, Modal, Select} from 'antd';
+import {Button, Tree, Modal, Select, message} from 'antd';
 import {
     EditOutlined,
     PlusOutlined,
@@ -83,7 +83,15 @@ class ListView extends React.Component {
 
     handleOk_AddType = () => {
         let data = this.state.imgList
+        const keyList = data.map(item => item.key)
         let chartType = this.state.newType
+        if(keyList.indexOf(chartType) !== -1) {
+            message.error("Added an existing type.")
+            return
+        } else if(chartType === '' || chartType === undefined || chartType === null) {
+            message.error("Added an empty type.")
+            return
+        }
         let boxes = []
         let title1 = (
             <div>
@@ -113,20 +121,14 @@ class ListView extends React.Component {
             children: boxes
         })
         this.setState({
-            newType: ''
-        })
-        console.log(this.state.newType)
-        this.setState({
+            newType: '',
             isAddTypeModalVisible: false
         })
     }
 
     handleCancel_AddType = () => {
         this.setState({
-            newType: ''
-        })
-        console.log(this.state.newType)
-        this.setState({
+            newType: '',
             isAddTypeModalVisible: false
         })
     }
