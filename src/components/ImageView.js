@@ -1,5 +1,5 @@
 import React  from "react";
-import {Button, Modal, Result, message} from 'antd';
+import {Button, Modal, Result, message, Radio} from 'antd';
 import './ImageView.css';
 import { Image, Layer, Stage } from "react-konva";
 import Rects from "./Rects";
@@ -8,7 +8,12 @@ import { SmileOutlined } from "@ant-design/icons";
 
 let scale;
 const TASKALLDONE = 'All Tasks are done.'
-//TODO check and improve rect draw
+const taskOptions = [
+    {label: 'AnnotationPage', value: 'AnnotationPage'},
+    {label: 'AnnotationImage', value: 'AnnotationImage'},
+    {label: 'VerifyImage', value: 'VerifyImage'},
+]
+
 const AnnosImage = ({ image, store, maxW, maxH }) => {
     const [img] = useImage(image);
     let width = img ? img.width : 600
@@ -33,7 +38,6 @@ const AnnosImage = ({ image, store, maxW, maxH }) => {
 class ImageView extends React.Component {
     constructor(props){
         super(props)
-        console.log(props)
         this.myImg = React.createRef()
         this.myImgContainer = React.createRef()
         this.stageRef = React.createRef()
@@ -41,11 +45,12 @@ class ImageView extends React.Component {
             imgURL: '',
             isPainting: false,
             isContinueModalVisible: false,
-            isTaskEmpty: true
+            isTaskEmpty: true,
+            taskOptionValue: 'VerifyImage'
         }
         scale = 4
     }
-    preVTask=()=>{
+    prevTask=()=>{
         // get the previous task
         const {currentTaskIndex, taskInfo} = this.props.store.getState()
         if( currentTaskIndex !== 0 ){
@@ -57,6 +62,7 @@ class ImageView extends React.Component {
                 currentTaskIndex: currentTaskIndex-1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
+                taskType: taskInfo[currentTaskIndex-1].task_type,
                 isEdit: false
             })
         } else {
@@ -75,6 +81,7 @@ class ImageView extends React.Component {
                 currentTaskIndex: currentTaskIndex+1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
+                taskType: taskInfo[currentTaskIndex+1].task_type,
                 isEdit: false
             })
         } else if (taskInfo.length !== 0) {
@@ -88,20 +95,27 @@ class ImageView extends React.Component {
     }
 
     submitAnnos=()=>{
-        let {taskInfo, currentTaskIndex, currentAnnoInfo} = this.props.store.getState()
+        const {taskInfo, currentTaskIndex, currentAnnoInfo, isEdit} = this.props.store.getState()
         // get current task
         let task = taskInfo[currentTaskIndex]
-        let annos = {}
-        // update task annotations
-        //TODO 提交的时候判断是验证，还是修改？
-        currentAnnoInfo.forEach((type)=>{
-            let boxes = []
-            type.children.forEach((item)=>{
-                boxes.push(item.bbox)
+
+        // update task status
+        if(isEdit === false) {
+            task.isVerified = true
+        } else {
+            // reproduce annotations from currentAnnoInfo
+            let annos = {}
+            currentAnnoInfo.forEach((type)=>{
+                let boxes = []
+                type.children.forEach((item)=>{
+                    boxes.push(item.bbox)
+                })
+                annos[type.key] = boxes
             })
-            annos[type.key] = boxes
-        })
-        task.annotations = annos
+            task.isVerified = false
+            task.annotations = annos
+        }
+
         //submit task
         const { token } = this.props.store.getState()
         fetch("http://127.0.0.1:5000/submit_task",{
@@ -215,6 +229,7 @@ class ImageView extends React.Component {
         })
     }
 
+    //TODO 设置申请的task类别
     handleOk_ContinueTasks = () => {
         const { store } = this.props;
         const { token } = store.getState()
@@ -225,7 +240,6 @@ class ImageView extends React.Component {
                 }
             })
             .then(res => {
-                console.log(res)
                 return res.json()
             })
             .then(data => {
@@ -237,7 +251,7 @@ class ImageView extends React.Component {
                 if(taskData.length === 0) {
                     message.info("There are no tasks to be assigned.")
                 } else {
-                    message.success("Get Tasks success, cnt is " + taskData.length + ".")
+                    message.success("Get Tasks success, count is " + taskData.length + ".")
                     store.setState({
                         taskType: taskData[0].task_type
                     });
@@ -252,6 +266,12 @@ class ImageView extends React.Component {
     handleCancel_ContinueTasks = () => {
         this.setState({
             isContinueModalVisible: false
+        })
+    }
+
+    handleChange_TaskOption = (e) => {
+        this.setState({
+            taskOptionValue: e.target.value
         })
     }
 
@@ -289,11 +309,18 @@ class ImageView extends React.Component {
         return  (
             <div className="imageview">
                 ImageView
-                <Modal title="继续"
+                <Modal title="Continue to receive tasks?"
                        visible={this.state.isContinueModalVisible}
                        onOk={this.handleOk_ContinueTasks}
                        onCancel={this.handleCancel_ContinueTasks} >
-                    <p>继续领取任务？</p>
+                    <p>Select Task Type</p>
+                    <Radio.Group
+                        options={taskOptions}
+                        onChange={this.handleChange_TaskOption}
+                        value={this.state.taskOptionValue}
+                        optionType="button"
+                        buttonStyle="solid"
+                    />
                 </Modal>
                 <div ref={this.myImgContainer} className="img-content">
                     <Stage
@@ -322,7 +349,7 @@ class ImageView extends React.Component {
                 </div>
                 <footer>
                     <div className="btns">
-                    <Button className="btn" type='primary' onClick={this.preVTask}>
+                    <Button className="btn" type='primary' onClick={this.prevTask}>
                         Prev
                     </Button>
                     <Button className="btn" type='primary' onClick={this.submitAnnos}>

@@ -15,7 +15,6 @@ function Login(props){
             method:'get'
         })
         .then(res => {
-            console.log(res)
             return res.text()
         })
         .then(data => {
@@ -45,7 +44,7 @@ function Login(props){
                         onChange={(e)=>onChange(e)}
                         />
                 <br/>
-                <Button className="btn" type="primary"  onClick={handleSubmit} >登录 </Button>
+                <Button className="btn" type="primary"  onClick={handleSubmit} >Login </Button>
             </div>
         </div>
     )

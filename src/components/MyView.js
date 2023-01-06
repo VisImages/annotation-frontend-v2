@@ -2,7 +2,7 @@ import React from 'react';
 import './MyView.css';
 import ImageView from './ImageView';
 import ListView from './ListView';
-import {message} from 'antd'
+import {message, Button} from 'antd'
 
 
 class MyView extends React.Component {
@@ -33,31 +33,16 @@ class MyView extends React.Component {
               taskType: taskData[0].task_type
             });
         } else {
-            fetch("http://127.0.0.1:5000/tasks",{
-                method:'get',
-                headers:{
-                    Token: token,
-                }
-            })
-            .then(res => {
-                return res.json()
-            })
-            .then(data => {
-                const taskData = data.data
-                store.setState({
-                  taskInfo: taskData
-                });
-                if(taskData.length === 0) {
-                  message.info("There are no tasks to be assigned.")
-                } else {
-                    message.success("Get Tasks success, cnt is " + taskData.length + ".")
-                    store.setState({
-                      taskType: taskData[0].task_type
-                    });
-                }
-            })
+            message.info("There are no unprocessed tasks.")
         }
     })
+  }
+
+  handleClick_logout = () => {
+    // TODO navigate to login page
+    // localStorage.removeItem('token')
+    // localStorage.removeItem('username')
+    // message.success('Logout success.')
   }
 
   componentDidMount(){
@@ -80,6 +65,7 @@ class MyView extends React.Component {
         <header className='title'>
           <span>VisImages</span>
           <span className='usrname'>{this.state.username}</span>
+          <Button size='small' className='logout' onClick={this.handleClick_logout}>Logout</Button>
         </header>
           <ImageView store={this.props.store}/>
           <ListView store={this.props.store}/>

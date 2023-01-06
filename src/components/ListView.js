@@ -7,7 +7,6 @@ import {
     PlusOutlined,
     MinusOutlined
 } from '@ant-design/icons'
-import { Label } from "react-konva";
 
 const VISCATEGORIES = [{"value": "flow_diagram", "label": "flow_diagram"}, {"value": "scatterplot", "label": "scatterplot"}, {"value": "bar_chart", "label": "bar_chart"}, {"value": "graph", "label": "graph"}, {"value": "treemap", "label": "treemap"}, {"value": "table", "label": "table"}, {"value": "line_chart", "label": "line_chart"}, {"value": "tree", "label": "tree"}, {"value": "small_multiple", "label": "small_multiple"}, {"value": "heatmap", "label": "heatmap"}, {"value": "matrix", "label": "matrix"}, {"value": "map", "label": "map"}, {"value": "pie_chart", "label": "pie_chart"}, {"value": "sankey_diagram", "label": "sankey_diagram"}, {"value": "area_chart", "label": "area_chart"}, {"value": "proportional_area_chart", "label": "proportional_area_chart"}, {"value": "glyph_based", "label": "glyph_based"}, {"value": "stripe_graph", "label": "stripe_graph"}, {"value": "parallel_coordinate", "label": "parallel_coordinate"}, {"value": "sunburst_icicle", "label": "sunburst_icicle"}, {"value": "unit_visualization", "label": "unit_visualization"}, {"value": "polar_plot", "label": "polar_plot"}, {"value": "error_bar", "label": "error_bar"}, {"value": "box_plot", "label": "box_plot"}, {"value": "sector_chart", "label": "sector_chart"}, {"value": "word_cloud", "label": "word_cloud"}, {"value": "donut_chart", "label": "donut_chart"}, {"value": "hierarchical_edge_bundling", "label": "hierarchical_edge_bundling"}, {"value": "chord_diagram", "label": "chord_diagram"}, {"value": "storyline", "label": "storyline"}]
 
@@ -138,10 +137,8 @@ class ListView extends React.Component {
     }
 
     onAdd = (key) => {
-        console.log(key)
         let data = this.state.annoTreeData
         data.forEach((item)=>{
-            console.log(item)
             if(item.key===key){
                 const lastKey = item.children[item.children.length-1].key
                 const lastIndex = parseInt(lastKey.split('-')[1])
@@ -171,9 +168,8 @@ class ListView extends React.Component {
             currentAnnoInfo: data,
             isEdit: true
         })
-        console.log(this.state.annoTreeData)
     }
-    // set currentAnnoInfo: which is visualization annotations in VerifyImages Tasks, need to improve the name
+
     onEdit = (key) =>{
         this.props.store.setState({
             currentAnnoInfo: this.state.annoTreeData,
@@ -186,7 +182,6 @@ class ListView extends React.Component {
         let data = this.state.annoTreeData
         data.forEach((type,idx)=>{
             type.children.forEach((item, index)=>{
-                console.log(key)
                 if(item.key===key){
                     // delete tree node by the key
                     type.children.splice(index,1)
@@ -204,7 +199,6 @@ class ListView extends React.Component {
             currentAnnoInfo: data,
             isEdit: true
         })
-        console.log(this.state.annoTreeData)
     }
 
     handleSelectNode = (e) => {

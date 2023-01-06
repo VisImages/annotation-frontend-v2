@@ -27,10 +27,15 @@
 
 .usrname {
   position: absolute;
-  right: 20px;
+  right: 80px;
   text-align: right;
   /* display: inline; */
   font-size: 10px;
+}
+
+.logout {
+  position: absolute;
+  right: 10px;
 }
 
 Rect{
