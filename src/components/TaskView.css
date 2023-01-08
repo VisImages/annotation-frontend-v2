@@ -1,8 +1,13 @@
-.listview {
+.taskview {
     min-width: 30%;
-    height: 68vh;
+    height: 20vh;
     float: left;
     border: 1px solid #000000;
     border-radius: 10px;
     margin: 10px 2% 10px 2% ;
+}
+
+
+.tag {
+    margin: 5px;
 }

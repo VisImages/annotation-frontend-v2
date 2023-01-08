@@ -24,7 +24,7 @@ function Login(props){
             localStorage.setItem('token', data);
             localStorage.setItem('username', usrname);
         })
-        navigate('/usr',{replace:true})
+        navigate('/usr', {replace:true})
     }
 
     function onChange(e){

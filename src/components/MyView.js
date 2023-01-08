@@ -2,8 +2,9 @@ import React from 'react';
 import './MyView.css';
 import ImageView from './ImageView';
 import ListView from './ListView';
-import {message, Button} from 'antd'
-
+import TaskView from './TaskView';
+import {message} from 'antd'
+import {TASK_VERIFY_VISUALIZATION} from '../config'
 
 class MyView extends React.Component {
   constructor(props){
@@ -28,9 +29,10 @@ class MyView extends React.Component {
     .then(data => {
         const taskData = data.data;
         if(taskData.length){
+          const taskType = taskData[0].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskData[0].task_type
             store.setState({
               taskInfo: taskData,
-              taskType: taskData[0].task_type
+              taskType: taskType
             });
         } else {
             message.info("There are no unprocessed tasks.")
@@ -38,18 +40,12 @@ class MyView extends React.Component {
     })
   }
 
-  handleClick_logout = () => {
-    // TODO navigate to login page
-    // localStorage.removeItem('token')
-    // localStorage.removeItem('username')
-    // message.success('Logout success.')
-  }
-
   componentDidMount(){
     if(localStorage.getItem('token')) {
       const {store} = this.props;
       store.setState({
         token: localStorage.getItem('token'),
+        username: localStorage.getItem('username')
       });
       this.setState({
         username: localStorage.getItem('username')
@@ -59,15 +55,16 @@ class MyView extends React.Component {
       message.error("Invalid user information, please log in again")
     }
   }
+
   render(){
     return (
       <div className="App">
         <header className='title'>
           <span>VisImages</span>
           <span className='usrname'>{this.state.username}</span>
-          <Button size='small' className='logout' onClick={this.handleClick_logout}>Logout</Button>
         </header>
           <ImageView store={this.props.store}/>
+          <TaskView store={this.props.store}/>
           <ListView store={this.props.store}/>
       </div>
     );

@@ -1,5 +1,6 @@
 import React  from "react";
-import {Button, Modal, Result, message, Radio} from 'antd';
+import {Button, Modal, Result, message} from 'antd';
+import {TASK_VERIFY_VISUALIZATION, TASK_ALLDONE_MESSAGE, TASK_FIND_OTHER_VISUALIZATION} from '../config'
 import './ImageView.css';
 import { Image, Layer, Stage } from "react-konva";
 import Rects from "./Rects";
@@ -7,12 +8,6 @@ import useImage from 'use-image';
 import { SmileOutlined } from "@ant-design/icons";
 
 let scale;
-const TASKALLDONE = 'All Tasks are done.'
-const taskOptions = [
-    {label: 'AnnotationPage', value: 'AnnotationPage'},
-    {label: 'AnnotationImage', value: 'AnnotationImage'},
-    {label: 'VerifyImage', value: 'VerifyImage'},
-]
 
 const AnnosImage = ({ image, store, maxW, maxH }) => {
     const [img] = useImage(image);
@@ -45,8 +40,7 @@ class ImageView extends React.Component {
             imgURL: '',
             isPainting: false,
             isContinueModalVisible: false,
-            isTaskEmpty: true,
-            taskOptionValue: 'VerifyImage'
+            isTaskEmpty: true
         }
         scale = 4
     }
@@ -58,11 +52,13 @@ class ImageView extends React.Component {
             let filename = task['fig_name']
             let pid = filename.split('_')[0]
             const url = "http://127.0.0.1:5000/img_src/"+ pid + '/' + filename
+            const taskType = taskInfo[currentTaskIndex-1].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskInfo[currentTaskIndex-1].task_type
             this.props.store.setState({
                 currentTaskIndex: currentTaskIndex-1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
-                taskType: taskInfo[currentTaskIndex-1].task_type,
+                currentAddAnnoInfo: [],
+                taskType: taskType,
                 isEdit: false
             })
         } else {
@@ -77,11 +73,13 @@ class ImageView extends React.Component {
             let filename = task['fig_name']
             let pid = filename.split('_')[0]
             const url = "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
+            const taskType = taskInfo[currentTaskIndex+1].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskInfo[currentTaskIndex+1].task_type
             this.props.store.setState({
                 currentTaskIndex: currentTaskIndex+1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
-                taskType: taskInfo[currentTaskIndex+1].task_type,
+                currentAddAnnoInfo: [],
+                taskType: taskType,
                 isEdit: false
             })
         } else if (taskInfo.length !== 0) {
@@ -95,25 +93,48 @@ class ImageView extends React.Component {
     }
 
     submitAnnos=()=>{
-        const {taskInfo, currentTaskIndex, currentAnnoInfo, isEdit} = this.props.store.getState()
+        const {taskInfo, currentTaskIndex, currentAnnoInfo, currentAddAnnoInfo, isEdit, username, taskType} = this.props.store.getState()
         // get current task
         let task = taskInfo[currentTaskIndex]
 
         // update task status
         if(isEdit === false) {
-            task.isVerified = true
+            task.is_verify = true
+            task.verified_by = username
+            task.modified_by = null
+            if(taskType === TASK_FIND_OTHER_VISUALIZATION) {
+                task.add_annotations = {}
+            }
         } else {
             // reproduce annotations from currentAnnoInfo
-            let annos = {}
-            currentAnnoInfo.forEach((type)=>{
-                let boxes = []
-                type.children.forEach((item)=>{
-                    boxes.push(item.bbox)
+            if(taskType === TASK_VERIFY_VISUALIZATION) {
+                let annos = {}
+                currentAnnoInfo.forEach((type)=>{
+                    let boxes = []
+                    type.children.forEach((item)=>{
+                        boxes.push(item.bbox)
+                    })
+                    annos[type.key] = boxes
                 })
-                annos[type.key] = boxes
-            })
-            task.isVerified = false
-            task.annotations = annos
+                task.annotations = annos
+            } else if(taskType === TASK_FIND_OTHER_VISUALIZATION) {
+                let annos = {}
+                currentAddAnnoInfo.forEach((type)=>{
+                    let boxes = []
+                    type.children.forEach((item)=>{
+                        boxes.push(item.bbox)
+                    })
+                    annos[type.key] = boxes
+                })
+                task.add_annotations = annos
+            } else {
+                console.error('Unknown Task Type')
+            }
+
+            task.is_verify = false
+            task.modified_by = username
+            task.verified_by = null
+
         }
 
         //submit task
@@ -136,14 +157,23 @@ class ImageView extends React.Component {
         // remove the task that submitted
         const submittedKey = task.task_id
         const newTaskInfo = taskInfo.filter(task => task.task_id !== submittedKey)
+
         if(currentTaskIndex !== 0 && currentTaskIndex >= newTaskInfo.length) {
-            currentTaskIndex = newTaskInfo.length - 1
+            this.props.store.setState({
+                currentTaskIndex: newTaskInfo.length - 1,
+                taskInfo: [...newTaskInfo],
+                currentAnnoInfo: [],
+                currentAddAnnoInfo: [],
+                isEdit: false
+            })
+        } else {
+            this.props.store.setState({
+                taskInfo: [...newTaskInfo],
+                currentAnnoInfo: [],
+                currentAddAnnoInfo: [],
+                isEdit: false
+            })
         }
-        this.props.store.setState({
-            taskInfo: [...newTaskInfo],
-            currentAnnoInfo: [],
-            currentTaskIndex: currentTaskIndex
-        })
     }
 
     getTasks=()=>{
@@ -166,7 +196,7 @@ class ImageView extends React.Component {
         return transform.point(pos);
     }
     onMouseDown = (e) =>{
-        const {editingAnnoKey, currentAnnoInfo}=this.props.store.getState()
+        const {editingAnnoKey, currentAnnoInfo, currentAddAnnoInfo, taskType} =this.props.store.getState()
         if(editingAnnoKey !== ''){
             //editingAnnoKey is not empty, start painting
             this.setState({
@@ -183,8 +213,21 @@ class ImageView extends React.Component {
                     }
                 })
             })
+
+            if(taskType === TASK_FIND_OTHER_VISUALIZATION) {
+                currentAddAnnoInfo.forEach((type)=>{
+                    type.children.forEach((item)=>{
+                        if(item.key === editingAnnoKey){
+                            item.bbox[0] = point.x * scale
+                            item.bbox[1] = point.y * scale
+                        }
+                    })
+                })
+            }
+
             this.props.store.setState({
                 currentAnnoInfo: [...currentAnnoInfo],
+                currentAddAnnoInfo: [...currentAddAnnoInfo]
             })
         } else {
             // when editingAnnoKey is empty, clear selectedKey
@@ -197,7 +240,7 @@ class ImageView extends React.Component {
         if(!this.state.isPainting){
             return
         }
-        const {editingAnnoKey, currentAnnoInfo}=this.props.store.getState()
+        const {editingAnnoKey, currentAnnoInfo, currentAddAnnoInfo, taskType}=this.props.store.getState()
         const point = this.getRelativePointerPosition(e.target.getStage());
         console.log("Mouse Move Position: ", point)
         // update the bottom right point of the editing annotation
@@ -209,8 +252,21 @@ class ImageView extends React.Component {
                 }
             })
         })
+
+        if(taskType === TASK_FIND_OTHER_VISUALIZATION) {
+            currentAddAnnoInfo.forEach((type)=>{
+                type.children.forEach((item)=>{
+                    if(item.key === editingAnnoKey){
+                        item.bbox[2]=point.x*scale
+                        item.bbox[3]=point.y*scale
+                    }
+                })
+            })
+        }
+
         this.props.store.setState({
             currentAnnoInfo: [...currentAnnoInfo],
+            currentAddAnnoInfo: [...currentAddAnnoInfo]
         })
     }
     onMouseUp=(e)=>{
@@ -229,11 +285,10 @@ class ImageView extends React.Component {
         })
     }
 
-    //TODO 设置申请的task类别
     handleOk_ContinueTasks = () => {
         const { store } = this.props;
         const { token } = store.getState()
-        fetch("http://127.0.0.1:5000/tasks",{
+        fetch("http://127.0.0.1:5000/get_tasks",{
                 method:'get',
                 headers:{
                     Token: token,
@@ -244,16 +299,19 @@ class ImageView extends React.Component {
             })
             .then(data => {
                 const taskData = data.data
-                store.setState({
-                    taskInfo: taskData
-                });
 
                 if(taskData.length === 0) {
                     message.info("There are no tasks to be assigned.")
+                    store.setState({
+                        taskInfo: taskData,
+                        taskType: ''
+                    });
                 } else {
+                    const taskType = taskData[0].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskData[0].task_type
                     message.success("Get Tasks success, count is " + taskData.length + ".")
                     store.setState({
-                        taskType: taskData[0].task_type
+                        taskInfo: taskData,
+                        taskType: taskType
                     });
                 }
             })
@@ -266,12 +324,6 @@ class ImageView extends React.Component {
     handleCancel_ContinueTasks = () => {
         this.setState({
             isContinueModalVisible: false
-        })
-    }
-
-    handleChange_TaskOption = (e) => {
-        this.setState({
-            taskOptionValue: e.target.value
         })
     }
 
@@ -303,7 +355,7 @@ class ImageView extends React.Component {
         })
 
         console.log(this.myImgContainer)
-     }
+    }
 
     render() {
         return  (
@@ -313,14 +365,6 @@ class ImageView extends React.Component {
                        visible={this.state.isContinueModalVisible}
                        onOk={this.handleOk_ContinueTasks}
                        onCancel={this.handleCancel_ContinueTasks} >
-                    <p>Select Task Type</p>
-                    <Radio.Group
-                        options={taskOptions}
-                        onChange={this.handleChange_TaskOption}
-                        value={this.state.taskOptionValue}
-                        optionType="button"
-                        buttonStyle="solid"
-                    />
                 </Modal>
                 <div ref={this.myImgContainer} className="img-content">
                     <Stage
@@ -343,7 +387,7 @@ class ImageView extends React.Component {
                     <div style={{display:this.state.isTaskEmpty ? '' : 'none'}}>
                     <Result
                         icon = {<SmileOutlined/>}
-                        title = {TASKALLDONE}
+                        title = {TASK_ALLDONE_MESSAGE}
                     />
                     </div>
                 </div>

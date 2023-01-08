@@ -1,14 +1,12 @@
 import React  from "react";
 import './ListView.css';
-
-import {Button, Tree, Modal, Select, message, Tag} from 'antd';
+import {TASK_VERIFY_VISUALIZATION, VIS_CATEGORIES, TASK_FIND_OTHER_VISUALIZATION, TREE_BUTTON_DISABLE, TREE_BUTTON_ABLE, TASK_VERIFY_IMAGE} from '../config'
+import {Button, Tree, Modal, Select, message} from 'antd';
 import {
     EditOutlined,
     PlusOutlined,
     MinusOutlined
 } from '@ant-design/icons'
-
-const VISCATEGORIES = [{"value": "flow_diagram", "label": "flow_diagram"}, {"value": "scatterplot", "label": "scatterplot"}, {"value": "bar_chart", "label": "bar_chart"}, {"value": "graph", "label": "graph"}, {"value": "treemap", "label": "treemap"}, {"value": "table", "label": "table"}, {"value": "line_chart", "label": "line_chart"}, {"value": "tree", "label": "tree"}, {"value": "small_multiple", "label": "small_multiple"}, {"value": "heatmap", "label": "heatmap"}, {"value": "matrix", "label": "matrix"}, {"value": "map", "label": "map"}, {"value": "pie_chart", "label": "pie_chart"}, {"value": "sankey_diagram", "label": "sankey_diagram"}, {"value": "area_chart", "label": "area_chart"}, {"value": "proportional_area_chart", "label": "proportional_area_chart"}, {"value": "glyph_based", "label": "glyph_based"}, {"value": "stripe_graph", "label": "stripe_graph"}, {"value": "parallel_coordinate", "label": "parallel_coordinate"}, {"value": "sunburst_icicle", "label": "sunburst_icicle"}, {"value": "unit_visualization", "label": "unit_visualization"}, {"value": "polar_plot", "label": "polar_plot"}, {"value": "error_bar", "label": "error_bar"}, {"value": "box_plot", "label": "box_plot"}, {"value": "sector_chart", "label": "sector_chart"}, {"value": "word_cloud", "label": "word_cloud"}, {"value": "donut_chart", "label": "donut_chart"}, {"value": "hierarchical_edge_bundling", "label": "hierarchical_edge_bundling"}, {"value": "chord_diagram", "label": "chord_diagram"}, {"value": "storyline", "label": "storyline"}]
 
 class ListView extends React.Component {
     constructor(props){
@@ -17,40 +15,33 @@ class ListView extends React.Component {
             annoTreeData: [],
             isAddTypeModalVisible: false,
             newType: '',
-            selectedKey: '' // selectedKey for tree node
+            selectedKey: '', // selectedKey for tree node
+            addTypeDisable: false,
+            addAnnoTreeData: []
         }
     }
-
+    // TODO deal with TASK_VERIFY_IMAGE
     createTreeData(annotations){
         // when currentAnnoInfo is empty or isEdit === false（Not yet modified）
         // produce treeData from annotations
         let treeData = []
+        const {taskType} = this.props.store.getState()
+        let tree_flag = taskType === TASK_FIND_OTHER_VISUALIZATION ? TREE_BUTTON_DISABLE : TREE_BUTTON_ABLE
 
         Object.keys(annotations).forEach(item=>{
             let chartType = item
             let boxes = []
             annotations[chartType].forEach((box, index)=>{
-                let title1 = (
-                    <div>
-                        <span>{'box-'+index}</span>
-                        <span>
-                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartType+'-'+index)}/>
-                            <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartType+'-'+index)}/>
-                        </span>
-                    </div>
-                )
+                let label = 'box-'+index
+                let chartKey = chartType+'-'+index
+                let title1 = this.generate_children_title(label, chartKey, tree_flag)
                 boxes.push({
                     title: title1,
                     key: chartType+'-'+index,
                     bbox: box
                 })
             })
-            let title2 = (
-                <div>
-                    <span>{chartType}</span>
-                    <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
-                </div>
-            )
+            let title2 = this.generate_chart_title(chartType, tree_flag)
             treeData.push({
                 title: title2,
                 key: chartType,
@@ -79,9 +70,53 @@ class ListView extends React.Component {
         })
     }
 
+    generate_chart_title(chartType, tree_flag) {
+        switch (tree_flag) {
+            case TREE_BUTTON_ABLE: {
+                return (
+                    <div>
+                        <span>{chartType}</span>
+                        <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
+                    </div>
+                )
+            }
+            default: {
+                return (
+                    <div>
+                        <span>{chartType}</span>
+                    </div>
+                )
+            }
+        }
+    }
+
+    generate_children_title(label, chartKey, tree_flag) {
+        switch (tree_flag) {
+            case TREE_BUTTON_ABLE: {
+                return (
+                    <div>
+                        <span>{label}</span>
+                        <span>
+                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartKey)}/>
+                            <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartKey)}/>
+                        </span>
+                    </div>
+                )
+            }
+            default: {
+                return (
+                    <div>
+                        <span>{label}</span>
+                    </div>
+                )
+            }
+        }
+    }
+
     handleOk_AddType = () => {
-        let data = this.state.annoTreeData
-        const keyList = data.map(item => item.key)
+        let treeData = this.state.annoTreeData
+        let addTreeData = this.state.addAnnoTreeData
+        const keyList = treeData.map(item => item.key)
         let chartType = this.state.newType
         if(keyList.indexOf(chartType) !== -1) {
             message.error("Added an existing type.")
@@ -91,15 +126,9 @@ class ListView extends React.Component {
             return
         }
         let boxes = []
-        let title1 = (
-            <div>
-                <span>{'box-0'}</span>
-                <span>
-                    <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartType+'-0')}/>
-                    <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartType+'-0')}/>
-                </span>
-            </div>
-        )
+        let label = 'box-0'
+        let chartKey = chartType+'-0'
+        let title1 = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
         boxes.push({
             // title:'box-'+index,
             title:title1,
@@ -107,25 +136,26 @@ class ListView extends React.Component {
             bbox: [0,10,0,10]
         })
 
-        let title2 = (
-            <div>
-                <span>{chartType}</span>
-                <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(chartType)} /></span>
-            </div>
-        )
+        let title2 = this.generate_chart_title(chartType, TREE_BUTTON_ABLE)
+
+        treeData.push({
+            title: title2,
+            key: chartType,
+            children: [...boxes]
+        })
+
+        addTreeData.push({
+            title: title2,
+            key: chartType,
+            children: [...boxes]
+        })
 
         // add new type node into annoTreeData
         this.setState({
             newType: '',
             isAddTypeModalVisible: false,
-            annoTreeData: [
-                ...data,
-                {
-                    title: title2,
-                    key: chartType,
-                    children: boxes
-                }
-            ]
+            annoTreeData: treeData,
+            addAnnoTreeData: addTreeData
         })
     }
 
@@ -137,35 +167,48 @@ class ListView extends React.Component {
     }
 
     onAdd = (key) => {
-        let data = this.state.annoTreeData
-        data.forEach((item)=>{
+        let treeData = this.state.annoTreeData
+        let addTreeData = this.state.addAnnoTreeData
+        treeData.forEach((item)=>{
             if(item.key===key){
                 const lastKey = item.children[item.children.length-1].key
                 const lastIndex = parseInt(lastKey.split('-')[1])
                 const myIndex = lastIndex+1
-                let myKey = item.key+'-'+myIndex
-                let title = (
-                    <div>
-                        <span>{'box-'+myIndex}</span>
-                        <span>
-                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(myKey)}/>
-                            <MinusOutlined style={{marginLeft: 10}}  onClick={()=>this.onDelete(myKey)}/>
-                        </span>
-                    </div>
-                )
+                let label = 'box-' + myIndex
+                let chartKey = item.key+'-'+myIndex
+                let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
                 item.children.push({
-                    // title:'box-'+item.children.length,
                     title:title,
-                    key:myKey,
+                    key:chartKey,
                     bbox:[]
                 })
             }
         })
-        this.setState({
-            annoTreeData: data
+
+        addTreeData.forEach((item)=>{
+            if(item.key===key){
+                const lastKey = item.children[item.children.length-1].key
+                const lastIndex = parseInt(lastKey.split('-')[1])
+                const myIndex = lastIndex+1
+                let label = 'box-' + myIndex
+                let chartKey = item.key+'-'+myIndex
+                let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
+                item.children.push({
+                    title:title,
+                    key:chartKey,
+                    bbox:[]
+                })
+            }
         })
+
+        this.setState({
+            annoTreeData: treeData,
+            addAnnoTreeData: addTreeData
+        })
+
         this.props.store.setState({
-            currentAnnoInfo: data,
+            currentAnnoInfo: treeData,
+            currentAddAnnoInfo: addTreeData,
             isEdit: true
         })
     }
@@ -173,30 +216,53 @@ class ListView extends React.Component {
     onEdit = (key) =>{
         this.props.store.setState({
             currentAnnoInfo: this.state.annoTreeData,
+            currentAddAnnoInfo: this.state.addAnnoTreeData,
             editingAnnoKey: key,
             isEdit: true,
         })
     }
 
     onDelete = (key) => {
-        let data = this.state.annoTreeData
-        data.forEach((type,idx)=>{
+        let treeData = this.state.annoTreeData
+        let addTreeData = this.state.addAnnoTreeData
+        treeData.forEach((type,idx)=>{
             type.children.forEach((item, index)=>{
                 if(item.key===key){
                     // delete tree node by the key
                     type.children.splice(index,1)
                     // when the type is empty, delete the type
                     if(type.children.length===0){
-                        data.splice(idx,1)
+                        // treeData.splice(idx,1)
+                        treeData = treeData.filter((tt) => {
+                            return tt.key !== type.key
+                        })
                     }
                 }
             })
         })
+        
+        addTreeData.forEach((type,idx)=>{
+            type.children.forEach((item, index)=>{
+                if(item.key===key){
+                    // delete tree node by the key
+                    type.children.splice(index,1)
+                    // when the type is empty, delete the type
+                    if(type.children.length===0){
+                        addTreeData = addTreeData.filter((tt) => {
+                            return tt.key !== type.key
+                        })
+                    }
+                }
+            })
+        })
+
         this.setState({
-            annoTreeData: data
+            annoTreeData: treeData,
+            addAnnoTreeData: addTreeData
         })
         this.props.store.setState({
-            currentAnnoInfo: data,
+            currentAnnoInfo: treeData,
+            currentAddAnnoInfo: addTreeData,
             isEdit: true
         })
     }
@@ -214,14 +280,16 @@ class ListView extends React.Component {
 
     componentDidMount() {
         this.props.store.subscribe(() => {
-            const {taskInfo, currentTaskIndex, selectedKey, currentAnnoInfo, isEdit} = this.props.store.getState()
+            const {taskInfo, currentTaskIndex, selectedKey, currentAnnoInfo, currentAddAnnoInfo, isEdit, taskType} = this.props.store.getState()
             this.setState({
-                selectedKey: selectedKey
+                selectedKey: selectedKey,
+                addTypeDisable: (taskType !== TASK_FIND_OTHER_VISUALIZATION) ? true : false
             })
 
             if(currentAnnoInfo.length || isEdit){
                 this.setState({
-                    annoTreeData: currentAnnoInfo
+                    annoTreeData: currentAnnoInfo,
+                    addAnnoTreeData: currentAddAnnoInfo
                 })
             } else {
                 //execute createTreeData after loading taskInfo
@@ -232,17 +300,17 @@ class ListView extends React.Component {
         })
     }
 
-    componentDidUpdate(){
-    }
-
     render() {
         return  (
             <div className="listview">
                 ListView
                 <div>
-                <Tag className="tag" color='blue'> TaskType: {this.props.store.getState().taskType}</Tag>
-                <br></br>
-                <Button type='primary' size='small' onClick={this.showAddTypeModal}>Add New Type</Button>
+                <Button type='primary' size='small'
+                    onClick={this.showAddTypeModal}
+                    disabled={this.state.addTypeDisable}
+                >
+                    Add New Type
+                </Button>
                 <Modal title="add new type"
                        visible={this.state.isAddTypeModalVisible}
                        onOk={this.handleOk_AddType}
@@ -256,7 +324,7 @@ class ListView extends React.Component {
                         filterOption={(input, option) =>
                         (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                         }
-                        options= {VISCATEGORIES}
+                        options= {VIS_CATEGORIES}
                     />
                 </Modal>
                 </div>
