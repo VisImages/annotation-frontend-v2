@@ -7,10 +7,20 @@
     margin: 10px 2% 10px 2% ;
     padding-bottom: 40px;
 }
-footer{
+.imageview-paper {
+    width: 60%;
+    height: 1200px;
+    float: left;
+    border: 1px solid hsl(0, 0%, 0%);
+    border-radius: 10px;
+    margin: 10px 2% 10px 2% ;
+    padding-bottom: 40px;
+}
+
+.footer{
     width: 60%;
     position: absolute;
-    bottom: 3.5%;
+    /* bottom: 3.5%; */
     height: 40px;
     text-align: center;
 }
@@ -28,9 +38,4 @@ footer{
     height: calc(100% - 40px);
     /* border:0.5px solid #000000; */
     /* margin:5px; */
-}
-.img {
-    max-width: 100%;
-    max-height: calc(91vh - 80px);
-    margin: 0;
 }

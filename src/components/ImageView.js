@@ -1,6 +1,6 @@
 import React  from "react";
 import {Button, Modal, Result, message} from 'antd';
-import {TASK_VERIFY_VISUALIZATION, TASK_ALLDONE_MESSAGE, TASK_FIND_OTHER_VISUALIZATION} from '../config'
+import {TASK_VERIFY_VISUALIZATION, TASK_ALLDONE_MESSAGE, TASK_FIND_OTHER_VISUALIZATION, TASK_VERIFY_IMAGE, IMAGE_VIEW, IMAGE_VIEW_PAPER} from '../config'
 import './ImageView.css';
 import { Image, Layer, Stage } from "react-konva";
 import Rects from "./Rects";
@@ -8,7 +8,6 @@ import useImage from 'use-image';
 import { SmileOutlined } from "@ant-design/icons";
 
 let scale;
-
 const AnnosImage = ({ image, store, maxW, maxH }) => {
     const [img] = useImage(image);
     let width = img ? img.width : 600
@@ -40,7 +39,8 @@ class ImageView extends React.Component {
             imgURL: '',
             isPainting: false,
             isContinueModalVisible: false,
-            isTaskEmpty: true
+            isTaskEmpty: true,
+            imageViewClassName: IMAGE_VIEW
         }
         scale = 4
     }
@@ -52,13 +52,15 @@ class ImageView extends React.Component {
             let filename = task['fig_name']
             let pid = filename.split('_')[0]
             const url = "http://127.0.0.1:5000/img_src/"+ pid + '/' + filename
-            const taskType = taskInfo[currentTaskIndex-1].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskInfo[currentTaskIndex-1].task_type
+            const taskType = task.task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : task.task_type
             this.props.store.setState({
                 currentTaskIndex: currentTaskIndex-1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
                 currentAddAnnoInfo: [],
                 taskType: taskType,
+                annType: taskType === TASK_VERIFY_VISUALIZATION ? task.ann_type : '',
+                pageNum: taskType === TASK_VERIFY_IMAGE ? task.page_num : 0,
                 isEdit: false
             })
         } else {
@@ -73,13 +75,15 @@ class ImageView extends React.Component {
             let filename = task['fig_name']
             let pid = filename.split('_')[0]
             const url = "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
-            const taskType = taskInfo[currentTaskIndex+1].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskInfo[currentTaskIndex+1].task_type
+            const taskType = task.task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : task.task_type
             this.props.store.setState({
                 currentTaskIndex: currentTaskIndex+1,
                 currentImgURL: url,
                 currentAnnoInfo: [],
                 currentAddAnnoInfo: [],
                 taskType: taskType,
+                annType: taskType === TASK_VERIFY_VISUALIZATION ? task.ann_type : '',
+                pageNum: taskType === TASK_VERIFY_IMAGE ? task.page_num : 0,
                 isEdit: false
             })
         } else if (taskInfo.length !== 0) {
@@ -94,6 +98,7 @@ class ImageView extends React.Component {
 
     submitAnnos=()=>{
         const {taskInfo, currentTaskIndex, currentAnnoInfo, currentAddAnnoInfo, isEdit, username, taskType} = this.props.store.getState()
+        if(taskInfo.length === 0) return
         // get current task
         let task = taskInfo[currentTaskIndex]
 
@@ -127,14 +132,23 @@ class ImageView extends React.Component {
                     annos[type.key] = boxes
                 })
                 task.add_annotations = annos
-            } else {
-                console.error('Unknown Task Type')
+            } else { // TASK_VERIFY_IMAGE
+                let annos = []
+                currentAnnoInfo.forEach((type)=>{
+                    type.children.forEach((item)=>{
+                        annos.push({
+                            image_id: item.image_id,
+                            bbox: item.bbox,
+                            page_image_idx: item.page_image_idx
+                        })
+                    })
+                })
+                task.annotations = annos
             }
 
             task.is_verify = false
             task.modified_by = username
             task.verified_by = null
-
         }
 
         //submit task
@@ -158,19 +172,31 @@ class ImageView extends React.Component {
         const submittedKey = task.task_id
         const newTaskInfo = taskInfo.filter(task => task.task_id !== submittedKey)
 
-        if(currentTaskIndex !== 0 && currentTaskIndex >= newTaskInfo.length) {
+        if(newTaskInfo.length === 0) { // all tasks submitted
             this.props.store.setState({
-                currentTaskIndex: newTaskInfo.length - 1,
-                taskInfo: [...newTaskInfo],
+                taskInfo: [],
                 currentAnnoInfo: [],
                 currentAddAnnoInfo: [],
+                taskType: '',
+                annType: '',
+                pageNum: 0,
                 isEdit: false
             })
         } else {
+            let newTaskIndex = currentTaskIndex
+            if(currentTaskIndex !== 0 && currentTaskIndex >= newTaskInfo.length) {
+                newTaskIndex = newTaskInfo.length - 1
+            }
+            const new_task = newTaskInfo[newTaskIndex]
+            const taskType = task.task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : new_task.task_type
             this.props.store.setState({
+                currentTaskIndex: newTaskIndex,
                 taskInfo: [...newTaskInfo],
                 currentAnnoInfo: [],
                 currentAddAnnoInfo: [],
+                taskType: taskType,
+                annType: taskType === TASK_VERIFY_VISUALIZATION ? new_task.ann_type : '',
+                pageNum: taskType === TASK_VERIFY_IMAGE ? new_task.page_num : 0,
                 isEdit: false
             })
         }
@@ -304,14 +330,18 @@ class ImageView extends React.Component {
                     message.info("There are no tasks to be assigned.")
                     store.setState({
                         taskInfo: taskData,
-                        taskType: ''
+                        taskType: '',
+                        annType: '',
+                        pageNum: 0
                     });
                 } else {
                     const taskType = taskData[0].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskData[0].task_type
                     message.success("Get Tasks success, count is " + taskData.length + ".")
                     store.setState({
                         taskInfo: taskData,
-                        taskType: taskType
+                        taskType: taskType,
+                        annType: taskType === TASK_VERIFY_VISUALIZATION ? taskData[0].ann_type : '',
+                        pageNum: taskType === TASK_VERIFY_IMAGE ? taskData[0].page_num : 0
                     });
                 }
             })
@@ -330,21 +360,26 @@ class ImageView extends React.Component {
     componentDidMount() {
         // subscribe() function, will execute as soon as the store changes
         this.props.store.subscribe(() => {
-            const {taskInfo, currentTaskIndex} = this.props.store.getState()
+            const {taskInfo, currentTaskIndex, taskType} = this.props.store.getState()
             if(taskInfo.length){
-                let task = taskInfo[currentTaskIndex]
-                let filename = task['fig_name']
-                let pid = filename.split('_')[0]
-                const url = "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
+                const task = taskInfo[currentTaskIndex]
+                const filename = task['fig_name']
+                const pid = filename.split('_')[0]
+
+                const url = taskType === TASK_VERIFY_IMAGE ?
+                "http://127.0.0.1:5000/pdf_src/" + pid + '/' + filename :
+                "http://127.0.0.1:5000/img_src/" + pid + '/' + filename
 
                 this.setState({
                     imgURL: url,
-                    isTaskEmpty: false
+                    isTaskEmpty: false,
+                    imageViewClassName: taskType === TASK_VERIFY_IMAGE ? IMAGE_VIEW_PAPER : IMAGE_VIEW
                 })
             } else {
                 this.setState({
                     imgURL: "",
-                    isTaskEmpty: true
+                    isTaskEmpty: true,
+                    imageViewClassName: taskType === TASK_VERIFY_IMAGE ? IMAGE_VIEW_PAPER : IMAGE_VIEW
                 })
             }
         })
@@ -359,7 +394,7 @@ class ImageView extends React.Component {
 
     render() {
         return  (
-            <div className="imageview">
+            <div className={this.state.imageViewClassName}>
                 ImageView
                 <Modal title="Continue to receive tasks?"
                        visible={this.state.isContinueModalVisible}
@@ -376,7 +411,6 @@ class ImageView extends React.Component {
                         onMouseUp={(e)=>{this.onMouseUp(e)}}
                         visible = {!this.state.isTaskEmpty}
                         >
-                        {/* <BaseImage store={this.props.store}/> */}
                             <AnnosImage
                                 image={this.state.imgURL}
                                 store={this.props.store}
@@ -391,7 +425,7 @@ class ImageView extends React.Component {
                     />
                     </div>
                 </div>
-                <footer>
+                <footer className="footer">
                     <div className="btns">
                     <Button className="btn" type='primary' onClick={this.prevTask}>
                         Prev

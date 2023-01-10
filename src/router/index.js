@@ -16,10 +16,12 @@ class MyRoute extends React.Component{
             token: '',
             taskInfo: [],
             taskType: '',
+            annType: '',
             currentTaskIndex: 0,
             currentImgURL: '',
             currentAnnoInfo: [],
             currentAddAnnoInfo: [],
+            pageNum: 0,
             isEdit: false,
             editingAnnoKey: null, // the annotation (rect/tree node) key which is editing
             selectedKey: '' // the selected key of tree node, associated with rect

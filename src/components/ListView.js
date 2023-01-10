@@ -1,6 +1,6 @@
 import React  from "react";
 import './ListView.css';
-import {TASK_VERIFY_VISUALIZATION, VIS_CATEGORIES, TASK_FIND_OTHER_VISUALIZATION, TREE_BUTTON_DISABLE, TREE_BUTTON_ABLE, TASK_VERIFY_IMAGE} from '../config'
+import {TASK_VERIFY_VISUALIZATION, TREE_IMAGE_KEY, VIS_CATEGORIES, TASK_FIND_OTHER_VISUALIZATION, TREE_BUTTON_DISABLE, TREE_BUTTON_ABLE, TASK_VERIFY_IMAGE, LIST_VIEW, LIST_VIEW_PAPER} from '../config'
 import {Button, Tree, Modal, Select, message} from 'antd';
 import {
     EditOutlined,
@@ -17,10 +17,10 @@ class ListView extends React.Component {
             newType: '',
             selectedKey: '', // selectedKey for tree node
             addTypeDisable: false,
-            addAnnoTreeData: []
+            addAnnoTreeData: [],
+            listViewClassName: LIST_VIEW
         }
     }
-    // TODO deal with TASK_VERIFY_IMAGE
     createTreeData(annotations){
         // when currentAnnoInfo is empty or isEdit === false（Not yet modified）
         // produce treeData from annotations
@@ -28,26 +28,48 @@ class ListView extends React.Component {
         const {taskType} = this.props.store.getState()
         let tree_flag = taskType === TASK_FIND_OTHER_VISUALIZATION ? TREE_BUTTON_DISABLE : TREE_BUTTON_ABLE
 
-        Object.keys(annotations).forEach(item=>{
-            let chartType = item
+        if(taskType === TASK_VERIFY_IMAGE) {
             let boxes = []
-            annotations[chartType].forEach((box, index)=>{
-                let label = 'box-'+index
-                let chartKey = chartType+'-'+index
-                let title1 = this.generate_children_title(label, chartKey, tree_flag)
+            annotations.forEach((item, index) => {
+                const label = 'box-' + item.page_image_idx
+                const imageKey = 'image-' + item.page_image_idx
+                const title1 = this.generate_children_title(label, imageKey, tree_flag)
                 boxes.push({
                     title: title1,
-                    key: chartType+'-'+index,
-                    bbox: box
+                    key: imageKey,
+                    image_id: item.image_id,
+                    page_image_idx: item.page_image_idx,
+                    bbox: item.bbox
                 })
             })
-            let title2 = this.generate_chart_title(chartType, tree_flag)
+            const title2 = this.generate_image_title()
             treeData.push({
                 title: title2,
-                key: chartType,
+                key: TREE_IMAGE_KEY,
                 children: boxes
             })
-        })
+        } else {
+            Object.keys(annotations).forEach(item=>{
+                const chartType = item
+                let boxes = []
+                annotations[chartType].forEach((box, index)=>{
+                    const label = 'box-'+index
+                    const chartKey = chartType+'-'+index
+                    const title1 = this.generate_children_title(label, chartKey, tree_flag)
+                    boxes.push({
+                        title: title1,
+                        key: chartKey,
+                        bbox: box
+                    })
+                })
+                const title2 = this.generate_chart_title(chartType, tree_flag)
+                treeData.push({
+                    title: title2,
+                    key: chartType,
+                    children: boxes
+                })
+            })
+        }
 
         this.setState({
             annoTreeData: treeData
@@ -90,15 +112,24 @@ class ListView extends React.Component {
         }
     }
 
-    generate_children_title(label, chartKey, tree_flag) {
+    generate_image_title() {
+        return (
+            <div>
+                <span>images</span>
+                <span><PlusOutlined style={{marginLeft: 10}} onClick={()=>this.onAdd(TREE_IMAGE_KEY)} /></span>
+            </div>
+        )
+    }
+
+    generate_children_title(label, key, tree_flag) {
         switch (tree_flag) {
             case TREE_BUTTON_ABLE: {
                 return (
                     <div>
                         <span>{label}</span>
                         <span>
-                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(chartKey)}/>
-                            <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(chartKey)}/>
+                            <EditOutlined style={{marginLeft: 10}} onClick={()=>this.onEdit(key)}/>
+                            <MinusOutlined style={{marginLeft: 10}} onClick={()=>this.onDelete(key)}/>
                         </span>
                     </div>
                 )
@@ -169,37 +200,95 @@ class ListView extends React.Component {
     onAdd = (key) => {
         let treeData = this.state.annoTreeData
         let addTreeData = this.state.addAnnoTreeData
-        treeData.forEach((item)=>{
-            if(item.key===key){
-                const lastKey = item.children[item.children.length-1].key
-                const lastIndex = parseInt(lastKey.split('-')[1])
-                const myIndex = lastIndex+1
-                let label = 'box-' + myIndex
-                let chartKey = item.key+'-'+myIndex
-                let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
-                item.children.push({
-                    title:title,
-                    key:chartKey,
-                    bbox:[]
-                })
-            }
-        })
+        if(key === TREE_IMAGE_KEY) {
+            const {pageNum} = this.props.store.getState()
+            treeData.forEach((item)=> {
+                if(item.key === key) {
+                    if(item.children.length === 0) {
+                        const image_id = 0
+                        const page_image_idx = pageNum + '-' + 0
+                        const label = 'box-' + page_image_idx
+                        const imageKey = 'image-' + page_image_idx
+                        const title = this.generate_children_title(label, imageKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title: title,
+                            key: imageKey,
+                            image_id: image_id,
+                            page_image_idx: page_image_idx,
+                            bbox: []
+                        })
+                    } else {
+                        const page_image_idx_suffix = parseInt(item.children[item.children.length-1].page_image_idx.split('-')[1]) + 1
+                        const last_image_id = item.children[item.children.length-1].image_id
+                        const page_image_idx = pageNum + '-' + page_image_idx_suffix
+                        const label = 'box-' + page_image_idx
+                        const imageKey = 'image-' + page_image_idx
+                        const title = this.generate_children_title(label, imageKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title: title,
+                            key: imageKey,
+                            image_id: last_image_id + 1,
+                            page_image_idx: page_image_idx,
+                            bbox: []
+                        })
+                    }
+                }
+            })
+        } else {
+            treeData.forEach((item)=>{
+                if(item.key===key){
+                    if(item.children.length === 0) {
+                        const label = 'box-' + 0
+                        const chartKey = item.key + '-' + 0
+                        let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title:title,
+                            key:chartKey,
+                            bbox:[]
+                        })
+                    } else {
+                        const lastKey = item.children[item.children.length-1].key
+                        const lastIndex = parseInt(lastKey.split('-')[1])
+                        const curIndex = lastIndex+1
+                        let label = 'box-' + curIndex
+                        let chartKey = item.key+'-'+curIndex
+                        let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title:title,
+                            key:chartKey,
+                            bbox:[]
+                        })
+                    }
+                }
+            })
 
-        addTreeData.forEach((item)=>{
-            if(item.key===key){
-                const lastKey = item.children[item.children.length-1].key
-                const lastIndex = parseInt(lastKey.split('-')[1])
-                const myIndex = lastIndex+1
-                let label = 'box-' + myIndex
-                let chartKey = item.key+'-'+myIndex
-                let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
-                item.children.push({
-                    title:title,
-                    key:chartKey,
-                    bbox:[]
-                })
-            }
-        })
+            addTreeData.forEach((item)=>{
+                if(item.key===key){
+                    if(item.children.length === 0) {
+                        const label = 'box-' + 0
+                        const chartKey = item.key + '-' + 0
+                        let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title:title,
+                            key:chartKey,
+                            bbox:[]
+                        })
+                    } else {
+                        const lastKey = item.children[item.children.length-1].key
+                        const lastIndex = parseInt(lastKey.split('-')[1])
+                        const curIndex = lastIndex+1
+                        let label = 'box-' + curIndex
+                        let chartKey = item.key+'-'+curIndex
+                        let title = this.generate_children_title(label, chartKey, TREE_BUTTON_ABLE)
+                        item.children.push({
+                            title:title,
+                            key:chartKey,
+                            bbox:[]
+                        })
+                    }
+                }
+            })
+        }
 
         this.setState({
             annoTreeData: treeData,
@@ -225,14 +314,14 @@ class ListView extends React.Component {
     onDelete = (key) => {
         let treeData = this.state.annoTreeData
         let addTreeData = this.state.addAnnoTreeData
-        treeData.forEach((type,idx)=>{
+
+        treeData.forEach((type)=>{
             type.children.forEach((item, index)=>{
                 if(item.key===key){
                     // delete tree node by the key
                     type.children.splice(index,1)
                     // when the type is empty, delete the type
                     if(type.children.length===0){
-                        // treeData.splice(idx,1)
                         treeData = treeData.filter((tt) => {
                             return tt.key !== type.key
                         })
@@ -240,8 +329,8 @@ class ListView extends React.Component {
                 }
             })
         })
-        
-        addTreeData.forEach((type,idx)=>{
+
+        addTreeData.forEach((type)=>{
             type.children.forEach((item, index)=>{
                 if(item.key===key){
                     // delete tree node by the key
@@ -281,9 +370,11 @@ class ListView extends React.Component {
     componentDidMount() {
         this.props.store.subscribe(() => {
             const {taskInfo, currentTaskIndex, selectedKey, currentAnnoInfo, currentAddAnnoInfo, isEdit, taskType} = this.props.store.getState()
+
             this.setState({
                 selectedKey: selectedKey,
-                addTypeDisable: (taskType !== TASK_FIND_OTHER_VISUALIZATION) ? true : false
+                addTypeDisable: (taskType !== TASK_FIND_OTHER_VISUALIZATION) ? true : false,
+                listViewClassName: taskType === TASK_VERIFY_IMAGE ? LIST_VIEW_PAPER : LIST_VIEW
             })
 
             if(currentAnnoInfo.length || isEdit){
@@ -302,7 +393,7 @@ class ListView extends React.Component {
 
     render() {
         return  (
-            <div className="listview">
+            <div className={this.state.listViewClassName}>
                 ListView
                 <div>
                 <Button type='primary' size='small'

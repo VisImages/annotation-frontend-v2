@@ -4,7 +4,7 @@ import ImageView from './ImageView';
 import ListView from './ListView';
 import TaskView from './TaskView';
 import {message} from 'antd'
-import {TASK_VERIFY_VISUALIZATION} from '../config'
+import {TASK_VERIFY_IMAGE, TASK_VERIFY_VISUALIZATION} from '../config'
 
 class MyView extends React.Component {
   constructor(props){
@@ -30,10 +30,12 @@ class MyView extends React.Component {
         const taskData = data.data;
         if(taskData.length){
           const taskType = taskData[0].task_type.startsWith(TASK_VERIFY_VISUALIZATION) ? TASK_VERIFY_VISUALIZATION : taskData[0].task_type
-            store.setState({
-              taskInfo: taskData,
-              taskType: taskType
-            });
+          store.setState({
+            taskInfo: taskData,
+            taskType: taskType,
+            annType: taskType === TASK_VERIFY_VISUALIZATION ? taskData[0].ann_type : '',
+            pageNum: taskType === TASK_VERIFY_IMAGE ? taskData[0].page_num : 0
+          });
         } else {
             message.info("There are no unprocessed tasks.")
         }

@@ -6,3 +6,12 @@
     border-radius: 10px;
     margin: 10px 2% 10px 2% ;
 }
+
+.listview-paper {
+    min-width: 30%;
+    height: calc(1200px -  20vh - 20px);
+    float: left;
+    border: 1px solid #000000;
+    border-radius: 10px;
+    margin: 10px 2% 10px 2% ;
+}
