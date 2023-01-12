@@ -1,6 +1,6 @@
 import React  from "react";
 import './ListView.css';
-import {TASK_VERIFY_VISUALIZATION, TREE_IMAGE_KEY, VIS_CATEGORIES, TASK_FIND_OTHER_VISUALIZATION, TREE_BUTTON_DISABLE, TREE_BUTTON_ABLE, TASK_VERIFY_IMAGE, LIST_VIEW, LIST_VIEW_PAPER} from '../config'
+import {TREE_IMAGE_KEY, VIS_CATEGORIES, TASK_FIND_OTHER_VISUALIZATION, TREE_BUTTON_DISABLE, TREE_BUTTON_ABLE, TASK_VERIFY_IMAGE, LIST_VIEW, LIST_VIEW_PAPER} from '../config'
 import {Button, Tree, Modal, Select, message} from 'antd';
 import {
     EditOutlined,
@@ -37,7 +37,6 @@ class ListView extends React.Component {
                 boxes.push({
                     title: title1,
                     key: imageKey,
-                    image_id: item.image_id,
                     page_image_idx: item.page_image_idx,
                     bbox: item.bbox
                 })
@@ -205,7 +204,6 @@ class ListView extends React.Component {
             treeData.forEach((item)=> {
                 if(item.key === key) {
                     if(item.children.length === 0) {
-                        const image_id = 0
                         const page_image_idx = pageNum + '-' + 0
                         const label = 'box-' + page_image_idx
                         const imageKey = 'image-' + page_image_idx
@@ -213,13 +211,11 @@ class ListView extends React.Component {
                         item.children.push({
                             title: title,
                             key: imageKey,
-                            image_id: image_id,
                             page_image_idx: page_image_idx,
                             bbox: []
                         })
                     } else {
                         const page_image_idx_suffix = parseInt(item.children[item.children.length-1].page_image_idx.split('-')[1]) + 1
-                        const last_image_id = item.children[item.children.length-1].image_id
                         const page_image_idx = pageNum + '-' + page_image_idx_suffix
                         const label = 'box-' + page_image_idx
                         const imageKey = 'image-' + page_image_idx
@@ -227,7 +223,6 @@ class ListView extends React.Component {
                         item.children.push({
                             title: title,
                             key: imageKey,
-                            image_id: last_image_id + 1,
                             page_image_idx: page_image_idx,
                             bbox: []
                         })

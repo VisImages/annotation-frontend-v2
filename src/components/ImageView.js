@@ -32,9 +32,7 @@ const AnnosImage = ({ image, store, maxW, maxH }) => {
 class ImageView extends React.Component {
     constructor(props){
         super(props)
-        this.myImg = React.createRef()
         this.myImgContainer = React.createRef()
-        this.stageRef = React.createRef()
         this.state = {
             imgURL: '',
             isPainting: false,
@@ -137,7 +135,6 @@ class ImageView extends React.Component {
                 currentAnnoInfo.forEach((type)=>{
                     type.children.forEach((item)=>{
                         annos.push({
-                            image_id: item.image_id,
                             bbox: item.bbox,
                             page_image_idx: item.page_image_idx
                         })
@@ -403,7 +400,6 @@ class ImageView extends React.Component {
                 </Modal>
                 <div ref={this.myImgContainer} className="img-content">
                     <Stage
-                        ref={this.stageRef}
                         width={this.myImgContainer.current ? this.myImgContainer.current.clientWidth : window.innerWidth}
                         height={this.myImgContainer.current ? this.myImgContainer.current.clientHeight : window.innerHeight}
                         onMouseDown={(e)=>{this.onMouseDown(e)}}
